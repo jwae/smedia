@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <title>{{vertrag.title}}</title>
+    <style>
+      {{{css}}}
+    </style>
+  </head>
+  <body>
+    <section class="contract-page">
+      {{#if layout.briefkopf_png}}
+        <div class="letterhead-wrap">
+          <img class="letterhead-image" src="{{layout.briefkopf_png}}" alt="Briefkopf" />
+        </div>
+      {{/if}}
+
+      <header class="page-header">
+        <div>
+          <h1>{{vertrag.title}}</h1>
+          <p class="contract-meta">Vertragsnummer {{vertrag.nummer}} · Vorlage v{{vertrag.version}} · {{formatGermanDateTime vertrag.generatedAt}}</p>
+        </div>
+        <div class="contract-type-badge">{{vertrag.typ}}</div>
+      </header>
+
+      <section class="info-grid">
+        <article class="info-card">
+          <h2>Vertragspartner Schule</h2>
+          <dl>
+            <div>
+              <dt>Schule</dt>
+              <dd>{{partner.schulname}}</dd>
+            </div>
+            <div>
+              <dt>Anschrift</dt>
+              <dd>{{partner.adresse}}</dd>
+            </div>
+            <div>
+              <dt>Vertreten durch</dt>
+              <dd>{{partner.vertretung}}</dd>
+            </div>
+          </dl>
+        </article>
+
+        <article class="info-card">
+          <h2>{{ausleiher.personLabel}}</h2>
+          <dl>
+            <div>
+              <dt>Name</dt>
+              <dd>{{ausleiher.displayName}}</dd>
+            </div>
+            <div>
+              <dt>Vorname</dt>
+              <dd>{{ausleiher.vorname}}</dd>
+            </div>
+            <div>
+              <dt>Nachname</dt>
+              <dd>{{ausleiher.nachname}}</dd>
+            </div>
+            <div>
+              <dt>{{#if (eq ausleiher.ausleiher_typ "lehrkraft")}}Bereich{{else}}Klasse{{/if}}</dt>
+              <dd>{{ausleiher.klasse}}</dd>
+            </div>
+            <div>
+              <dt>Geburtsdatum</dt>
+              <dd>{{formatGermanDate ausleiher.geburtsdatum}}</dd>
+            </div>
+          </dl>
+        </article>
+      </section>
+
+      <section class="device-section">
+        <div class="section-heading">
+          <h2>Leihgeraete</h2>
+          <span>{{geraete.length}} Eintrag{{#unless (eq geraete.length 1)}}e{{/unless}}</span>
+        </div>
+
+        <table class="device-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Geraet</th>
+              <th>Artikel-ID</th>
+              <th>Inventarnummer</th>
+              <th>Barcode</th>
+              <th>Seriennummer</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each geraete}}
+              <tr>
+                <td>{{index}}</td>
+                <td>{{bezeichnung}}</td>
+                <td>{{artikel_id}}</td>
+                <td>{{inventarnummer}}</td>
+                <td>{{barcode}}</td>
+                <td>{{seriennummer}}</td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </section>
+
+      <section class="signature-grid">
+        <article class="signature-card">
+          <div class="signature-line"></div>
+          <p>Schueler / Lehrkraft</p>
+          <small>{{ausleiher.displayName}}</small>
+        </article>
+        <article class="signature-card">
+          <div class="signature-line"></div>
+          <p>Erziehungsberechtigte</p>
+          <small>Unterschrift</small>
+        </article>
+        <article class="signature-card">
+          <div class="signature-line"></div>
+          <p>Schule</p>
+          <small>{{partner.vertretung}}</small>
+        </article>
+      </section>
+
+    </section>
+
+    {{#if rechtstexte.length}}
+      <section class="legal-pages page-break-before">
+        {{#each rechtstexte}}
+          <section class="legal-entry">
+            <header class="legal-header">
+          <h2>{{titel}}</h2>
+          {{!-- <p class="contract-meta">{{../vertrag.title}} · {{../vertrag.typ}}</p> --}}
+            </header>
+            <article class="legal-content">
+              {{{html_inhalt}}}
+            </article>
+          </section>
+        {{/each}}
+      </section>
+    {{/if}}
+  </body>
+</html>

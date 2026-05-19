@@ -1,0 +1,7 @@
+Dumpo-Passwörter:
+DB LOkal 3007:
+--user=root --password=waT%#219XBdDJ$yI-5Sh
+
+DB in DOcker 3008:
+--user=smedia_app --password=change-me
+

@@ -1,0 +1,6 @@
+ALTER TABLE faecher
+ADD COLUMN aktiv TINYINT(1) NOT NULL DEFAULT 1 AFTER kuerzel;
+
+UPDATE faecher
+SET aktiv = 1
+WHERE aktiv IS NULL;

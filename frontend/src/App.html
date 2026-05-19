@@ -1,0 +1,302 @@
+<main class="app-shell">
+  <section class="hero-panel">
+    <div>
+      <p class="eyebrow">smedia v0.1</p>
+      <h1>Ausleihzentrale für Schulen</h1>
+      <p class="intro">
+        Für Bücher, Medien, Geräte, etc.
+      </p>
+      <p class="doc-link-row">
+        <a
+          class="doc-link"
+          href="/api/docs"
+          target="_blank"
+          rel="noreferrer"
+        >
+          API-Doku oeffnen
+        </a>
+      </p>
+    </div>
+
+    <div class="status-stack">
+      <div class="user-chip">
+        <span class="user-avatar">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+          </svg>
+        </span>
+        <span class="user-info">
+          <strong>Maria Musterfrau</strong>
+          <small>Bibliothek</small>
+        </span>
+        <button class="logout-btn" title="Abmelden">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="kennzahlen-kopf" v-if="dashboard">
+        <article class="kennzahl">
+          <span>Inventar</span>
+          <strong>{{ dashboard.exemplare_gesamt }}</strong>
+        </article>
+        <article class="kennzahl">
+          <span>Verfuegbar</span>
+          <strong>{{ dashboard.verfuegbar }}</strong>
+        </article>
+        <article class="kennzahl">
+          <span>Ausgeliehen</span>
+          <strong>{{ dashboard.ausgeliehen }}</strong>
+        </article>
+        <article class="kennzahl">
+          <span>Def./Rep.</span>
+          <strong :style="dashboard.problemfaelle > 0 ? 'color: #c0392b' : ''">{{ dashboard.problemfaelle }}</strong>
+        </article>
+        <article class="kennzahl">
+          <span>Buecher</span>
+          <strong>{{ dashboard.buecher }}</strong>
+        </article>
+        <article class="kennzahl">
+          <span>Geraete</span>
+          <strong>{{ dashboard.geraete }}</strong>
+        </article>
+      </div>
+      <p v-if="apiFehler" class="feedback error">{{ apiFehler }}</p>
+      <p v-if="erfolgsMeldung" class="feedback success">{{ erfolgsMeldung }}</p>
+    </div>
+  </section>
+
+  <ModulNavigation
+    :module="modulNavigation"
+    :aktives-modul="aktivesModul"
+  />
+
+  <!-- Dynamisches Rendern der Routen über Vue Router -->
+  <router-view v-slot="{ Component }">
+    <component
+      :is="Component"
+      :modus="aktivesModul"
+      :scanner-geraet-label="scannerGeraetLabel"
+      :manuelle-code-eingabe="manuelleCodeEingabe"
+      :scanner-status="scannerStatus"
+      :scan-result="scanResult"
+      :scan-type="scanType"
+      :last-error="lastError"
+      :scan-dialog="scanDialog"
+      :scan-bereit-zur-ausleihe="scanBereitZurAusleihe"
+      :scan-bereit-zur-rueckgabe="scanBereitZurRueckgabe"
+      :scan-dialog-hinweis="scanHinweisText"
+      :scan-offene-ausleihen-des-ausleihers="scanOffeneAusleihenDesAusleihers"
+      :markierte-scan-ausleihen="markierteScanAusleihen"
+      :start-ausleihe-geoeffnet="startAusleiheGeoeffnet"
+      :start-rueckgabe-geoeffnet="startRueckgabeGeoeffnet"
+      :start-verlaengerung-geoeffnet="startVerlaengerungGeoeffnet"
+      :ausleihe-form="ausleiheForm"
+      :rueckgabe-form="rueckgabeForm"
+      :verlaengerung-form="verlaengerungForm"
+      :scan-offene-ausleihe-zur-rueckgabe="scanAktiveAusleihe"
+      :lehrkraft-ausleiher="lehrkraftAusleiher"
+      :schueler-ausleiher="schuelerAusleiher"
+      :klassen-ausleiher="klassenAusleiher"
+      :standardfrist-text="standardfristText"
+      :format-datum="formatDatum"
+      :ausleiher-detail-text="ausleiherDetailText"
+      :exemplar-hat-warnstatus="exemplarHatWarnstatus"
+      :exemplar-warntext="exemplarWarntext"
+      :ist-ausleihe-ueberfaellig="istAusleiheUeberfaellig"
+      :tage-ueberfaellig="tageUeberfaellig"
+      :offene-ausleihen="offeneAusleihen"
+      :historie-eintraege="historieEintraege"
+      :ausleihe-manuelle-exemplar-eingabe="ausleiheManuelleExemplarEingabe"
+      :ausleihe-scan-exemplar-eingabe="ausleiheScanExemplarEingabe"
+      :klassensatz-form="klassensatzForm"
+      :klassensatz-gruppen="klassensatzGruppen"
+      :ist-klassensatz-gruppe-ausgewaehlt="istKlassensatzGruppeAusgewaehlt"
+      :exemplare="exemplare"
+      :inventar-geoeffnet="inventarGeoeffnet"
+      :laedt-daten="laedtDaten"
+      :offene-ausleihen-geoeffnet="offeneAusleihenGeoeffnet"
+      :ausgewaehltes-exemplar="ausgewaehltesExemplar"
+      :ausgewaehltes-buch="ausgewaehltesBuch"
+      :ausgewaehltes-exemplar-id="ausgewaehltesExemplarId"
+      :exemplar-form="exemplarForm"
+      :standorte="standorte"
+      :objekt-historie="objektHistorie"
+      :objekt-historie-seite="objektHistorieSeite"
+      :objekt-historie-gesamt="objektHistorieGesamt"
+      :objekt-historie-limit="objektHistorieLimit"
+      :artikel="artikel"
+      :inventar-typen="inventarTypen"
+      :artikel-kategorien="artikelKategorien"
+      :geraete-gefiltert="geraeteGefiltert"
+      :geraete-suche="geraeteSuche"
+      :geraete-alle-ausgewaehlt="geraeteAlleAusgewaehlt"
+      :geraete-ausgewaehlt="geraeteAusgewaehlt"
+      :faecher="faecher"
+      :herkunft="herkunft"
+      :api-request="apiRequest"
+      :externer-buch-titelcode="externerBuchTitelcode"
+      :barcode-druck-eintraege="barcodeDruckEintraege"
+      :druck-kategorie="druckKategorie"
+      :druck-code-format="druckCodeFormat"
+      :druck-filter="druckFilter"
+      :druck-filter-aktiv="druckFilterAktiv"
+      :ausgabebeleg-filter="ausgabebelegFilter"
+      :ausgabebeleg-filter-aktiv="ausgabebelegFilterAktiv"
+      :ausgabebeleg-layout="ausgabebelegLayout"
+      :ausgabebeleg-eintraege="ausgabebelegEintraege"
+      :ausgabebeleg-gruppen="ausgabebelegGruppen"
+      :leihvertraege-sammeldruck-eintraege="leihvertraegeSammeldruckEintraege"
+      :inventar-typen-fuer-druck="inventarTypenFuerDruck"
+      :statuswerte-fuer-druck="statuswerteFuerDruck"
+      :standorte-fuer-druck="standorteFuerDruck"
+      :klassen-fuer-druck="klassenFuerDruck"
+      :fachbereiche-fuer-druck="fachbereicheFuerDruck"
+      :qr-code-svg-map="qrCodeSvgMap"
+      :code39-svg="code39Svg"
+      :offene-schaeden="offeneSchaeden"
+      :offene-reparaturen="offeneReparaturen"
+      :schaden-form="schadenForm"
+      :reparatur-form="reparaturForm"
+      :reparaturen="reparaturen"
+      :historie-gesamt="historieGesamt"
+      :historie-datum-filter="historieDatumFilter"
+      :historie-filter="historieFilter"
+      :historie-geoeffnet="historieGeoeffnet"
+      :historie-nach-datum="historieNachDatum"
+      :historie-hat-buchlink="historieHatBuchlink"
+      :historie-loesch-tage="historieLoeschTage"
+      :historie-kann-mehr-laden="historieKannMehrLaden"
+      :historie-laedt-mehr="historieLaedtMehr"
+      @update:manuelle-code-eingabe="manuelleCodeEingabe = $event"
+      @update:markierte-scan-ausleihen="markierteScanAusleihen = $event"
+      @manuelle-pruefung="manuelleCodePruefung"
+      @scan-bestaetigen="scanAusleiheBestaetigen"
+      @ausleihe-starten="ausleiheSpeichernMitOptionen({ behalteAusleiher: true })"
+      @ausleihe-abbrechen="startAusleiheAbbrechen"
+      @scan-rueckgabe="scanRueckgabeBestaetigen"
+      @scan-verlaengern="scanVerlaengerungOeffnen"
+      @rueckgabe-buchen="rueckgabeSpeichern"
+      @rueckgabe-abbrechen="startRueckgabeAbbrechen"
+      @verlaengerung-speichern="verlaengerungSpeichern"
+      @verlaengerung-abbrechen="startVerlaengerungAbbrechen"
+      @scan-zuruecksetzen="appResetResult"
+      @update:ausleihe-manuelle-exemplar-eingabe="ausleiheManuelleExemplarEingabe = $event"
+      @update:ausleihe-scan-exemplar-eingabe="ausleiheScanExemplarEingabe = $event"
+      @suche-manuell="manuellesAusleiheExemplarSuchen"
+      @scan-uebernehmen="scanEingabeAusleiheExemplarUebernehmen"
+      @ausleihe-speichern="ausleiheSpeichern"
+      @rueckgabe-speichern="rueckgabeSpeichern"
+      @toggle-klassensatz-gruppe="toggleKlassensatzGruppe"
+      @klassensatz-speichern="klassensatzAusgabeSpeichern"
+      @toggle-inventar-geoeffnet="toggleInventarGeoeffnet"
+      @toggle-offene-ausleihen-geoeffnet="toggleOffeneAusleihenGeoeffnet"
+      @update:ausgewaehltes-exemplar-id="ausgewaehltesExemplarId = $event"
+      @waehle-exemplar="waehleExemplar"
+      @exemplar-speichern="exemplarSpeichern"
+      @historie-seite-wechseln="ladeObjektHistorie(ausgewaehltesExemplarId, $event)"
+      @update:externer-buch-titelcode="externerBuchTitelcode = $event"
+      @zeige-erfolg="erfolgsMeldung = $event"
+      @zeige-fehler="apiFehler = $event"
+      @zeige-scanner-status="scannerStatus = $event"
+      @lade-daten="ladeDaten"
+      @update:geraete-suche="geraeteSuche = $event"
+      @update:geraete-alle-ausgewaehlt="geraeteAlleAusgewaehlt = $event"
+      @toggle-geraet-auswahl="toggleGeraeteAuswahl"
+      @geraete-auswahl-loeschen-anfragen="geraeteAuswahlLoeschenAnfragen"
+      @bearbeite-geraet="springeZurObjektpflege"
+      @update:druck-kategorie="druckKategorie = $event"
+      @update:druck-code-format="druckCodeFormat = $event"
+      @drucke-barcodes="druckeBarcodes"
+      @druckfilter-zuruecksetzen="druckFilterZuruecksetzen"
+      @update:ausgabebeleg-layout="ausgabebelegLayout = $event"
+      @drucke-ausgabebelege="druckeAusgabebelege"
+      @ausgabebelegfilter-zuruecksetzen="ausgabebelegFilterZuruecksetzen"
+      @schaden-speichern="schadenSpeichern"
+      @reparatur-starten="reparaturStarten"
+      @reparatur-abschliessen="reparaturAbschliessen"
+      @update:historie-datum-filter="historieDatumFilter = $event"
+      @update:historie-filter="historieFilter = $event"
+      @update:historie-loesch-tage="historieLoeschTage = $event"
+      @zeige-buchdetails="zeigeBuchdetailsAusHistorie"
+      @historie-loeschen="historieLoeschenAnfragen"
+      @historie-mehr-laden="ladeWeitereHistorie"
+    />
+  </router-view>
+
+  <!-- Bestätigungs-Overlay Löschen -->
+  <Teleport to="body">
+    <div v-if="loeschenDialog" class="overlay-backdrop" @click.self="loeschenDialog = false">
+      <div class="confirm-dialog">
+        <h3>Exemplare löschen</h3>
+        <p>
+          {{ geraeteAusgewaehlt.size }} Exemplar{{ geraeteAusgewaehlt.size === 1 ? '' : 'e' }}
+          unwiderruflich löschen?
+        </p>
+        <p v-if="loeschenFehler" class="confirm-dialog-fehler">{{ loeschenFehler }}</p>
+        <div class="confirm-dialog-actions">
+          <button class="btn-secondary" @click="loeschenDialog = false">Abbrechen</button>
+          <button class="danger" @click="geraeteAuswahlLoeschenBestaetigen">Löschen</button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
+
+  <Teleport to="body">
+    <div v-if="historieLoeschenDialog" class="overlay-backdrop" @click.self="historieLoeschenDialog = false">
+      <div class="confirm-dialog">
+        <h3>Historie bereinigen</h3>
+        <p>
+          Alle Historie-Eintraege unwiderruflich loeschen, die aelter als
+          {{ historieLoeschTage }} Tage sind?
+        </p>
+        <p v-if="loeschenFehler" class="confirm-dialog-fehler">{{ loeschenFehler }}</p>
+        <div class="confirm-dialog-actions">
+          <button class="btn-secondary" @click="historieLoeschenDialog = false">Abbrechen</button>
+          <button class="danger" @click="historieLoeschen">Loeschen</button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
+
+  <!-- Buch-Overlay aus Historie -->
+  <Teleport to="body">
+    <div v-if="overlayExemplarId" class="overlay-backdrop" @click.self="overlayExemplarId = null">
+      <div class="overlay-panel">
+        <div class="overlay-head">
+          <div>
+            <h2>{{ overlayExemplar?.titel ?? '—' }}</h2>
+            <span class="subtle">{{ overlayExemplar?.inventarnummer }}</span>
+          </div>
+          <button class="overlay-close" @click="overlayExemplarId = null">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="overlay-body">
+          <div v-if="overlayExemplar?.cover_bild || overlayExemplar?.cover_url" class="buch-cover-box">
+            <img
+              :src="overlayExemplar.cover_bild || overlayExemplar.cover_url"
+                  :alt="`Cover von ${overlayExemplar?.titel}`"
+                  class="buch-cover"
+                />
+              </div>
+              
+              <div class="historie-liste" style="margin-top: 1rem;">
+                <article v-for="eintrag in (overlayHistorie.eintraege || overlayHistorie)" :key="`overlay-hist-${eintrag.id}`" class="historie-eintrag">
+                  <div class="historie-kopf">
+                    <strong>{{ eintrag.titel }}</strong>
+                    <span>{{ formatDatum(eintrag.erstellt_am) }}</span>
+                  </div>
+                  <p>{{ eintrag.details }}</p>
+                </article>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Teleport>
+</main>

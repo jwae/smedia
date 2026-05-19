@@ -1,0 +1,15 @@
+Projektbild
+
+Das Projekt ist ein schulisches Inventar- und Ausleihsystem für Medien, Bücher und Geräte. Technisch besteht es aus einem Vue-3/Vite-Frontend mit einem Express-Backend und MariaDB als Datenbank, inklusive Swagger/OpenAPI-Doku. Die Startskripte und Haupt-Dependencies sieht man in package.json (line 2), die API-Doku in openapi.yaml (line 1), der Swagger-Link steht zusätzlich in info.txt (line 1).
+
+Im Frontend läuft sehr viel zentral in App.vue (line 11). Dort werden alle Daten geladen und die Module gesteuert; die sichtbaren Hauptbereiche sind Start, Ausleihe, Rückgabe, Klassensätze, Bücher, Objekte, Schaden/Reparatur, Historie, Druck und Tagesfokus, siehe App.vue (line 129). Ein Teil der UI ist schon in Komponenten ausgelagert, z. B. StartModule.vue (line 1), NeueAusleiheModule.vue (line 1) und KlassensatzModule.vue (line 1), aber ein erheblicher Teil der Fachlogik sitzt noch im großen App.vue.
+
+Backend und Datenmodell
+
+Das Backend ist fachlich schon recht umfangreich. Es bietet Endpunkte für Übersicht, Exemplare, Historie, Standorte, Schüler, Lehrkräfte, Buch-Lookups, Schäden, Reparaturen, Ausleiher, Einzel-Ausleihe, Klassensatz-Ausgabe, Rückgabe und Exemplar-Updates, siehe backend/server.js (line 671). Außerdem gibt es serverseitige Standardfristen je Ausleiher-Typ in backend/server.js (line 20): Lehrkraft 14 Tage, Schüler 7 Tage, Klasse 1 Tag.
+
+db.txt beschreibt sehr klar die fachliche Zielstruktur: gemeinsamer Artikel-/Exemplar-Ansatz, getrennte Status-/Zustandslogik, Buch- und Gerätedetails, Ausleiher, Historie und geplante Erweiterungen wie Schäden, Reparaturen und Schuljahreslogik, siehe db.txt (line 5) und db.txt (line 402). Der reale Dump bestätigt, dass dieses Modell weitgehend schon umgesetzt ist: artikel, artikel_exemplare, ausleihen, ausleiher, buch_details, historie_eintraege, klassen, lehrkraefte, schadensmeldungen, schueler, schueler_klassen, standorte, statuskatalog, zustandskatalog usw. sind angelegt, siehe dump-smedia-202604091526.sql (line 26). Auffällig ist: Einige Tabellen sind im Schema vorhanden, aber im Dump offenbar noch ohne Beispieldaten oder noch nicht aktiv genutzt, etwa reparaturen, ausleiharten, geraete_details und exemplar_zuordnungen.
+
+Wichtige Einordnung
+
+Der aktuelle Stand wirkt wie ein funktionierender Prototyp bzw. fortgeschrittenes internes Tool mit starker Fachlogik im Backend und relativ viel Orchestrierung im Frontend. Die Kernprozesse sind schon da: Scannen, Ausleihe, Rückgabe, Klassensätze, Bucherkennung per Titelcode/EAN, Historie und Objektpflege. Gleichzeitig sieht man noch Ausbaupotenzial bei Strukturierung und Absicherung: Die DB-Zugangsdaten sind derzeit direkt mit Fallbacks im Code hinterlegt, siehe backend/db.js (line 3), und das große App.vue (line 1) ist ein naheliegender Kandidat für weitere Aufteilung.

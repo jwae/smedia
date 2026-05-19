@@ -1,0 +1,59 @@
+services:
+  mariadb:
+    image: mariadb:11
+    restart: unless-stopped
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    env_file:
+      - .env.docker
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-change-root-password}
+      MARIADB_DATABASE: ${DB_NAME:-smedia}
+      MARIADB_USER: ${DB_USER:-smedia_app}
+      MARIADB_PASSWORD: ${DB_PASSWORD:-change-me}
+    ports:
+      - "${MARIADB_PORT:-3308}:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/10-init.sql:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'mariadb-admin ping -h 127.0.0.1 -p"$${MARIADB_ROOT_PASSWORD}"'
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: runtime
+    restart: unless-stopped
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    env_file:
+      - .env.docker
+    environment:
+      NODE_ENV: production
+    ports:
+      - "${API_PORT:-3001}:3001"
+    volumes:
+      - backend_storage:/app/backend/storage
+      - backend_templates:/app/backend/templates
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+
+volumes:
+  mariadb_data:
+  backend_storage:
+  backend_templates:

@@ -1,0 +1,1486 @@
+<script setup>
+import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { storeToRefs } from "pinia";
+import ModulNavigation from "./components/ModulNavigation.vue";
+import { useScanner } from "./composables/useScanner.js";
+import { useInventarStore } from "./stores/inventarStore.js";
+import { useDruck } from "./composables/useDruck.js";
+
+const apiBasis = import.meta.env.VITE_API_BASIS || "http://localhost:3001/api";
+
+const dashboard = ref(null);
+const inventarStore = useInventarStore();
+const { 
+  exemplare, ausleiher, offeneAusleihen,
+  verfuegbareExemplare, klassenAusleiher, lehrkraftAusleiher, schuelerAusleiher
+} = storeToRefs(inventarStore);
+const route = useRoute();
+const router = useRouter();
+
+const {
+  druckKategorie, druckCodeFormat, druckFilter, qrCodeSvgMap,
+  inventarTypenFuerDruck, standorteFuerDruck, statuswerteFuerDruck,
+  klassenFuerDruck, fachbereicheFuerDruck, druckFilterAktiv,
+  barcodeDruckEintraege, code39Svg, druckeBarcodes, druckFilterZuruecksetzen
+} = useDruck(exemplare, schuelerAusleiher, lehrkraftAusleiher, klassenAusleiher);
+
+const {
+  scannerGeraetLabel, scannerStatus, scanResult, scanType, manuelleCodeEingabe, lastError,
+  scanDialog, markierteScanAusleihen, scanBereitZurAusleihe, scanOffeneAusleiheZurRueckgabe,
+  scanOffeneAusleihenDesAusleihers, scanMarkierteAusleihe, scanAktiveAusleihe, scanBereitZurRueckgabe,
+  scanHinweisText, fokussiereScannerEingabe, leereScannerEingaben, scanDialogZuruecksetzen, resetResult,
+  verarbeiteErkanntenCode, manuelleCodePruefung, uebernehmeScanAusleiher, uebernehmeScanExemplar,
+  exemplarHatWarnstatus, exemplarWarntext
+} = useScanner(exemplare, ausleiher, offeneAusleihen);
+
+const historieEintraege = ref([]);
+const historieGesamt = ref(0);
+const historieFilter = ref("");
+const historieDatumFilter = ref("");
+const historieLoeschTage = ref("30");
+const historieLaedtMehr = ref(false);
+const historieBatchGroesse = 200;
+const objektHistorie = ref([]);
+const objektHistorieGesamt = ref(0);
+const objektHistorieSeite = ref(1);
+const objektHistorieLimit = ref(10);
+const overlayExemplarId = ref(null);
+const overlayHistorie = ref([]);
+const standorte = ref([]);
+const faecher = ref([]);
+const herkunft = ref([]);
+const schaeden = ref([]);
+const reparaturen = ref([]);
+const ausgewaehltesExemplarId = ref("");
+const laedtDaten = ref(true);
+const apiFehler = ref("");
+const erfolgsMeldung = ref("");
+const geraeteSuche = ref("");
+const geraeteAusgewaehlt = ref(new Set());
+const loeschenDialog = ref(false);
+const historieLoeschenDialog = ref(false);
+const loeschenFehler = ref("");
+const externerBuchTitelcode = ref("");
+
+function datumPlusTageAlsIsoDatum(tage) {
+  const datum = new Date();
+  datum.setDate(datum.getDate() + tage);
+  const pad = (wert) => String(wert).padStart(2, "0");
+  return `${datum.getFullYear()}-${pad(datum.getMonth() + 1)}-${pad(datum.getDate())}`;
+}
+
+function standardFaelligkeitAusleihe() {
+  return datumPlusTageAlsIsoDatum(7);
+}
+
+const ausleiheForm = ref({
+  exemplar_id: "",
+  ausleiher_id: "",
+  faellig_am: standardFaelligkeitAusleihe(),
+  kommentar_ausgabe: ""
+});
+const ausleiheManuelleExemplarEingabe = ref("");
+const ausleiheScanExemplarEingabe = ref("");
+
+const klassensatzForm = ref({
+  ausleiher_id: "",
+  exemplar_ids: [],
+  faellig_am: "",
+  kommentar_ausgabe: ""
+});
+
+const rueckgabeForm = ref({
+  ausleihe_id: "",
+  zustand_bei_rueckgabe: "gut",
+  kommentar_rueckgabe: ""
+});
+const verlaengerungForm = ref({
+  ausleihe_id: "",
+  faellig_am: "",
+  kommentar_verlaengerung: ""
+});
+
+const exemplarForm = ref({
+  status: "",
+  zustand: "",
+  standort_id: "",
+  notizen: ""
+});
+
+const schadenForm = ref({
+  exemplar_id: "",
+  ausleihe_id: "",
+  gemeldet_von_ausleiher_id: "",
+  titel: "",
+  beschreibung: "",
+  schadensgrad: "mittel"
+});
+
+const reparaturForm = ref({
+  schadensmeldung_id: "",
+  dienstleister: "",
+  beschreibung: "",
+  kosten: ""
+});
+
+const objektpflegeBereich = ref(null);
+const aktivesModul = computed(() => route.name || "start");
+const startSuche = ref("");
+
+const modulNavigation = [
+  { id: "start", label: "Start" },
+  { id: "manuelle-buchung", label: "Manuelle Buchung" },
+  { id: "buecher", label: "Medienverwaltung" },
+  { id: "objekte", label: "Objekte" },
+  { id: "schaden", label: "Schaden & Reparatur" },
+  { id: "historie", label: "Historie" },
+  { id: "druck", label: "Druck" },
+  { id: "tagesfokus", label: "Tagesfokus" }
+];
+
+const geraeteVerfuegbar = computed(() =>
+  geraeteGefiltert.value.filter((e) => e.status === "verfuegbar")
+);
+
+const geraeteAlleAusgewaehlt = computed({
+  get: () =>
+    geraeteVerfuegbar.value.length > 0 &&
+    geraeteVerfuegbar.value.every((e) => geraeteAusgewaehlt.value.has(e.id)),
+  set: (val) => {
+    const next = new Set(geraeteAusgewaehlt.value);
+    geraeteVerfuegbar.value.forEach((e) => (val ? next.add(e.id) : next.delete(e.id)));
+    geraeteAusgewaehlt.value = next;
+  }
+});
+
+const geraeteGefiltert = computed(() => {
+  const suchtext = geraeteSuche.value.trim().toLowerCase();
+  return exemplare.value.filter((e) => {
+    if (!suchtext) return true;
+    return (
+      (e.inventarnummer || "").toLowerCase().includes(suchtext) ||
+      (e.titel || "").toLowerCase().includes(suchtext) ||
+      (e.inventar_typ || "").toLowerCase().includes(suchtext) ||
+      (e.status || "").toLowerCase().includes(suchtext) ||
+      (e.zustand || "").toLowerCase().includes(suchtext) ||
+      (e.standort || "").toLowerCase().includes(suchtext) ||
+      (e.seriennummer || "").toLowerCase().includes(suchtext)
+    );
+  });
+});
+
+async function apiRequest(path, options) {
+  const response = await fetch(`${apiBasis}${path}`, options);
+  const payload = await response.json();
+
+  if (!response.ok) {
+    throw new Error(payload.fehler || "Unbekannter API-Fehler");
+  }
+
+  return payload;
+}
+
+async function ladeUebersicht() {
+  const [uebersicht, exemplarListe, ausleiherListe, historieListe, standortListe, schadenListe, reparaturListe] = await Promise.all([
+    apiRequest("/uebersicht"),
+    apiRequest("/exemplare"),
+    apiRequest("/ausleiher"),
+    apiRequest(`/historie?limit=${historieBatchGroesse}&offset=0`),
+    apiRequest("/standorte"),
+    apiRequest("/schaeden"),
+    apiRequest("/reparaturen")
+  ]);
+  const faecherListe = await apiRequest("/faecher").catch(() => faecher.value);
+  const herkunftListe = await apiRequest("/herkunft").catch(() => herkunft.value);
+
+  dashboard.value = uebersicht.kennzahlen;
+  inventarStore.setzeDaten(exemplarListe, ausleiherListe, uebersicht.offene_ausleihen);
+  historieEintraege.value = historieListe.eintraege;
+  historieGesamt.value = historieListe.gesamt;
+  standorte.value = standortListe;
+  schaeden.value = schadenListe;
+  reparaturen.value = reparaturListe;
+  faecher.value = faecherListe;
+  herkunft.value = herkunftListe;
+
+  if (!ausgewaehltesExemplarId.value && exemplarListe.length > 0) {
+    waehleExemplar(exemplarListe[0].id);
+  } else if (ausgewaehltesExemplarId.value) {
+    await ladeObjektHistorie(ausgewaehltesExemplarId.value);
+  }
+}
+
+async function ladeObjektHistorie(exemplarId, seite = 1) {
+  if (!exemplarId) {
+    objektHistorie.value = [];
+    objektHistorieGesamt.value = 0;
+    return;
+  }
+
+  const limit = objektHistorieLimit.value;
+  const offset = (seite - 1) * limit;
+
+  const response = await apiRequest(`/historie?exemplar_id=${exemplarId}&limit=${limit}&offset=${offset}`);
+  
+  objektHistorie.value = response.eintraege || response;
+  objektHistorieGesamt.value = response.gesamt || (Array.isArray(response) ? response.length : 0);
+  objektHistorieSeite.value = seite;
+}
+
+function waehleExemplar(exemplarId) {
+  ausgewaehltesExemplarId.value = exemplarId;
+  const exemplar = exemplare.value.find((eintrag) => eintrag.id === exemplarId);
+
+  if (!exemplar) return;
+
+  exemplarForm.value = {
+    status: exemplar.status,
+    zustand: exemplar.zustand,
+    standort_id: standorte.value.find((standort) => standort.bezeichnung === exemplar.standort)?.id || "",
+    notizen: exemplar.notizen || ""
+  };
+
+  ladeObjektHistorie(exemplarId);
+}
+
+async function springeZurObjektpflege(payload) {
+  // Erlaubt das Empfangen der reinen ID oder des kompletten Objekts aus dem Event
+  const exemplarId = typeof payload === "object" && payload !== null ? payload.id : payload;
+  
+  if (exemplarId) {
+    waehleExemplar(exemplarId);
+  }
+  wechsleModul("objekte");
+  
+  await nextTick();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function historieHatBuchlink(eintrag) {
+  if (!eintrag?.exemplar_id) return false;
+  const exemplar = exemplare.value.find((wert) => wert.id === eintrag.exemplar_id);
+  return exemplar?.inventar_typ === "buch";
+}
+
+async function zeigeBuchdetailsAusHistorie(eintrag) {
+  if (!eintrag?.exemplar_id) return;
+  overlayExemplarId.value = eintrag.exemplar_id;
+  overlayHistorie.value = await apiRequest(`/historie?exemplar_id=${eintrag.exemplar_id}&limit=20`);
+}
+
+async function historieLoeschen() {
+  const tage = Number(historieLoeschTage.value);
+
+  if (!Number.isInteger(tage) || tage < 1) {
+    apiFehler.value = "Bitte eine gueltige Anzahl von Tagen fuer die Historie-Bereinigung angeben.";
+    return;
+  }
+
+  historieLoeschenDialog.value = false;
+  apiFehler.value = "";
+  erfolgsMeldung.value = "";
+
+  try {
+    const response = await apiRequest(`/historie?tage=${tage}`, {
+      method: "DELETE"
+    });
+    erfolgsMeldung.value = response.meldung;
+    await ladeUebersicht();
+  } catch (error) {
+    apiFehler.value = error.message;
+  }
+}
+
+const historieKannMehrLaden = computed(
+  () => historieEintraege.value.length < historieGesamt.value
+);
+
+async function ladeWeitereHistorie() {
+  if (historieLaedtMehr.value || !historieKannMehrLaden.value) {
+    return;
+  }
+
+  historieLaedtMehr.value = true;
+
+  try {
+    const historieListe = await apiRequest(
+      `/historie?limit=${historieBatchGroesse}&offset=${historieEintraege.value.length}`
+    );
+    historieEintraege.value = [...historieEintraege.value, ...historieListe.eintraege];
+    historieGesamt.value = historieListe.gesamt;
+  } catch (error) {
+    apiFehler.value = error.message;
+  } finally {
+    historieLaedtMehr.value = false;
+  }
+}
+
+function historieLoeschenAnfragen() {
+  const tage = Number(historieLoeschTage.value);
+
+  if (!Number.isInteger(tage) || tage < 1) {
+    apiFehler.value = "Bitte eine gueltige Anzahl von Tagen fuer die Historie-Bereinigung angeben.";
+    return;
+  }
+
+  loeschenFehler.value = "";
+  historieLoeschenDialog.value = true;
+}
+
+function wechsleModul(modulId) {
+  router.push({ name: modulId });
+}
+
+function appLeereScannerEingaben() {
+  leereScannerEingaben();
+  ausleiheManuelleExemplarEingabe.value = "";
+  ausleiheScanExemplarEingabe.value = "";
+}
+
+async function startTrefferOeffnen(treffer) {
+  if (!treffer) return;
+
+  if (treffer.typ === "exemplar") {
+    springeZurObjektpflege(treffer.daten.id);
+    return;
+  }
+
+  if (treffer.typ === "buch") {
+    externerBuchTitelcode.value = treffer.daten.titelcode || "";
+    wechsleModul("buecher");
+    return;
+  }
+
+  if (treffer.typ === "ausleiher") {
+    if (treffer.daten.ausleiher_typ === "klasse") {
+      klassensatzForm.value.ausleiher_id = treffer.daten.id;
+      wechsleModul("manuelle-buchung");
+      return;
+    }
+
+    ausleiheForm.value.ausleiher_id = treffer.daten.id;
+    wechsleModul("manuelle-buchung");
+  }
+}
+
+function startTrefferHatRueckgabe(treffer) {
+  return (
+    treffer?.typ === "exemplar" &&
+    treffer.daten?.inventar_typ !== "buch" &&
+    treffer.daten?.status === "ausgeliehen"
+  );
+}
+
+function startTrefferHatAusleihe(treffer) {
+  return (
+    treffer?.typ === "exemplar" &&
+    treffer.daten?.inventar_typ !== "buch" &&
+    treffer.daten?.status === "verfuegbar"
+  );
+}
+
+function startTrefferAusleihe(treffer) {
+  if (!startTrefferHatAusleihe(treffer)) return;
+
+  ausleiheForm.value.exemplar_id = treffer.daten.id;
+  apiFehler.value = "";
+  wechsleModul("manuelle-buchung");
+}
+
+function startTrefferRueckgabe(treffer) {
+  if (!startTrefferHatRueckgabe(treffer)) return;
+
+  const offeneAusleihe = offeneAusleihen.value.find(
+    (eintrag) => eintrag.inventarnummer === treffer.daten.inventarnummer
+  );
+
+  if (!offeneAusleihe) {
+    apiFehler.value = "Zu diesem Geraet wurde keine offene Ausleihe gefunden.";
+    return;
+  }
+
+  rueckgabeForm.value.ausleihe_id = offeneAusleihe.id;
+  wechsleModul("rueckgabe");
+}
+
+async function ladeDaten() {
+  laedtDaten.value = true;
+  apiFehler.value = "";
+
+  try {
+    await ladeUebersicht();
+  } catch (error) {
+    apiFehler.value = error.message;
+  } finally {
+    laedtDaten.value = false;
+  }
+}
+
+async function ausleiheSpeichern() {
+  return ausleiheSpeichernMitOptionen();
+}
+
+async function ausleiheSpeichernMitOptionen(optionen = {}) {
+  apiFehler.value = "";
+  erfolgsMeldung.value = "";
+  const { behalteAusleiher = false } = optionen;
+  const gemerkterAusleiherId = ausleiheForm.value.ausleiher_id;
+  const gemerkteFaelligkeit = ausleiheForm.value.faellig_am;
+  const gemerkterKommentar = ausleiheForm.value.kommentar_ausgabe;
+  const gemerkterScanAusleiher = scanDialog.value.ausleiher;
+  const wirksameFaelligkeit = formatiereDatumAlsTagesende(ausleiheForm.value.faellig_am);
+
+  try {
+    const response = await apiRequest("/ausleihen", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...ausleiheForm.value,
+        faellig_am: wirksameFaelligkeit
+      })
+    });
+
+    ausleiheForm.value = {
+      exemplar_id: "",
+      ausleiher_id: behalteAusleiher ? gemerkterAusleiherId : "",
+      faellig_am: behalteAusleiher ? gemerkteFaelligkeit : standardFaelligkeitAusleihe(),
+      kommentar_ausgabe: behalteAusleiher ? gemerkterKommentar : ""
+    };
+
+    if (behalteAusleiher && gemerkterScanAusleiher) {
+      scanDialog.value = {
+        ausleiher: gemerkterScanAusleiher,
+        exemplar: null,
+        erwartet: "exemplar"
+      };
+    } else {
+      scanDialogZuruecksetzen();
+    }
+
+    appLeereScannerEingaben();
+    erfolgsMeldung.value = `Ausleihe wurde gespeichert. Faellig am ${formatDatum(response.faellig_am)}.`;
+    await ladeDaten();
+    fokussiereScannerEingabe();
+  } catch (error) {
+    apiFehler.value = error.message;
+  }
+}
+
+async function klassensatzAusgabeSpeichern() {
+  apiFehler.value = "";
+  erfolgsMeldung.value = "";
+
+  try {
+    const response = await apiRequest("/klassensaetze/ausgabe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(klassensatzForm.value)
+    });
+
+    klassensatzForm.value = {
+      ausleiher_id: "",
+      exemplar_ids: [],
+      faellig_am: "",
+      kommentar_ausgabe: ""
+    };
+
+    erfolgsMeldung.value = `${response.anzahl} Klassensatz-Exemplare wurden ausgegeben. Faellig am ${formatDatum(response.faellig_am)}.`;
+    await ladeDaten();
+  } catch (error) {
+    apiFehler.value = error.message;
+  }
+}
+
+async function scanAusleiheBestaetigen() {
+  if (!scanBereitZurAusleihe.value) return;
+}
+
+async function scanRueckgabeBestaetigen() {
+  if (!scanBereitZurRueckgabe.value || !scanAktiveAusleihe.value) return;
+
+  rueckgabeForm.value.ausleihe_id = scanAktiveAusleihe.value.id;
+}
+
+async function rueckgabeSpeichern() {
+  return rueckgabeSpeichernMitOptionen();
+}
+
+async function rueckgabeSpeichernMitOptionen(optionen = {}) {
+  apiFehler.value = "";
+  erfolgsMeldung.value = "";
+  const { behalteAusleiher = false } = optionen;
+  const gemerkterScanAusleiher = scanDialog.value.ausleiher;
+
+  try {
+    await apiRequest(`/ausleihen/${rueckgabeForm.value.ausleihe_id}/rueckgabe`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        zustand_bei_rueckgabe: rueckgabeForm.value.zustand_bei_rueckgabe,
+        kommentar_rueckgabe: rueckgabeForm.value.kommentar_rueckgabe
+      })
+    });
+
+    rueckgabeForm.value = {
+      ausleihe_id: "",
+      zustand_bei_rueckgabe: "gut",
+      kommentar_rueckgabe: ""
+    };
+
+    if (behalteAusleiher && gemerkterScanAusleiher) {
+      scanDialog.value = {
+        ausleiher: gemerkterScanAusleiher,
+        exemplar: null,
+        erwartet: "exemplar"
+      };
+    } else if (scanDialog.value.exemplar) {
+      scanDialog.value = {
+        ausleiher: scanDialog.value.ausleiher,
+        exemplar: null,
+        erwartet: scanDialog.value.ausleiher ? "exemplar" : "ausleiher"
+      };
+    }
+
+    appLeereScannerEingaben();
+    erfolgsMeldung.value = "Rueckgabe wurde verbucht.";
+    await ladeDaten();
+    fokussiereScannerEingabe();
+  } catch (error) {
+    apiFehler.value = error.message;
+  }
+}
+
+async function scanVerlaengerungOeffnen() {
+  if (!scanBereitZurRueckgabe.value || !scanAktiveAusleihe.value) return;
+
+  const aktuelleFaelligkeit = scanAktiveAusleihe.value.faellig_am;
+
+  verlaengerungForm.value = {
+    ausleihe_id: scanAktiveAusleihe.value.id,
+    faellig_am: formatFuerDatetimeLocalPlusTage(aktuelleFaelligkeit, 7),
+    kommentar_verlaengerung: ""
+  };
+}
+
+async function verlaengerungSpeichern() {
+  const offeneAusleihe =
+    offeneAusleihen.value.find(
+      (eintrag) => Number(eintrag.id) === Number(verlaengerungForm.value.ausleihe_id)
+    ) || scanAktiveAusleihe.value;
+
+  if (!verlaengerungForm.value.ausleihe_id && offeneAusleihe?.id) {
+    verlaengerungForm.value.ausleihe_id = offeneAusleihe.id;
+  }
+
+  return verlaengerungSpeichernMitOptionen({ behalteAusleiher: true });
+}
+
+async function verlaengerungSpeichernMitOptionen(optionen = {}) {
+  apiFehler.value = "";
+  erfolgsMeldung.value = "";
+  const { behalteAusleiher = false } = optionen;
+  const gemerkterScanAusleiher = scanDialog.value.ausleiher;
+  const offeneAusleihe =
+    offeneAusleihen.value.find(
+      (eintrag) => Number(eintrag.id) === Number(verlaengerungForm.value.ausleihe_id)
+    ) || scanAktiveAusleihe.value;
+  const aktuelleFaelligkeit = offeneAusleihe?.faellig_am;
+
+  if (!verlaengerungForm.value.ausleihe_id || !verlaengerungForm.value.faellig_am) {
+    apiFehler.value = "Neue Faelligkeit ist erforderlich.";
+    return;
+  }
+
+  if (!aktuelleFaelligkeit) {
+    apiFehler.value = "Verlaengern ist nur mit bestehender Faelligkeit moeglich.";
+    return;
+  }
+
+  const aktuelleZeit = new Date(aktuelleFaelligkeit).getTime();
+  const neueZeit = new Date(verlaengerungForm.value.faellig_am).getTime();
+
+  if (Number.isNaN(aktuelleZeit) || Number.isNaN(neueZeit) || neueZeit <= aktuelleZeit) {
+    apiFehler.value = "Die neue Faelligkeit muss spaeter als die aktuelle Faelligkeit sein.";
+    return;
+  }
+
+  try {
+    const response = await apiRequest(`/ausleihen/${verlaengerungForm.value.ausleihe_id}/verlaengern`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        faellig_am: verlaengerungForm.value.faellig_am,
+        kommentar_verlaengerung: verlaengerungForm.value.kommentar_verlaengerung
+      })
+    });
+
+    verlaengerungForm.value = {
+      ausleihe_id: "",
+      faellig_am: "",
+      kommentar_verlaengerung: ""
+    };
+
+    if (behalteAusleiher && gemerkterScanAusleiher) {
+      scanDialog.value = {
+        ausleiher: gemerkterScanAusleiher,
+        exemplar: null,
+        erwartet: "exemplar"
+      };
+    }
+
+    appLeereScannerEingaben();
+    erfolgsMeldung.value = `Ausleihe wurde verlaengert. Neue Faelligkeit: ${formatDatum(response.faellig_am)}.`;
+    await ladeDaten();
+    fokussiereScannerEingabe();
+  } catch (error) {
+    apiFehler.value = error.message;
+  }
+}
+
+async function exemplarSpeichern() {
+  if (!ausgewaehltesExemplarId.value) return;
+
+  apiFehler.value = "";
+  erfolgsMeldung.value = "";
+
+  try {
+    await apiRequest(`/exemplare/${ausgewaehltesExemplarId.value}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(exemplarForm.value)
+    });
+
+    erfolgsMeldung.value = "Exemplar wurde aktualisiert.";
+    await ladeDaten();
+    await ladeObjektHistorie(ausgewaehltesExemplarId.value, objektHistorieSeite.value);
+  } catch (error) {
+    apiFehler.value = error.message;
+  }
+}
+
+async function schadenSpeichern() {
+  apiFehler.value = "";
+  erfolgsMeldung.value = "";
+
+  try {
+    await apiRequest("/schaeden", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...schadenForm.value,
+        ausleihe_id: schadenForm.value.ausleihe_id || null,
+        gemeldet_von_ausleiher_id: schadenForm.value.gemeldet_von_ausleiher_id || null
+      })
+    });
+
+    schadenForm.value = {
+      exemplar_id: "",
+      ausleihe_id: "",
+      gemeldet_von_ausleiher_id: "",
+      titel: "",
+      beschreibung: "",
+      schadensgrad: "mittel"
+    };
+
+    erfolgsMeldung.value = "Schadensmeldung wurde gespeichert.";
+    await ladeDaten();
+  } catch (error) {
+    apiFehler.value = error.message;
+  }
+}
+
+async function reparaturStarten() {
+  apiFehler.value = "";
+  erfolgsMeldung.value = "";
+
+  try {
+    await apiRequest("/reparaturen", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...reparaturForm.value,
+        kosten: reparaturForm.value.kosten ? Number(reparaturForm.value.kosten) : null
+      })
+    });
+
+    reparaturForm.value = {
+      schadensmeldung_id: "",
+      dienstleister: "",
+      beschreibung: "",
+      kosten: ""
+    };
+
+    erfolgsMeldung.value = "Reparatur wurde gestartet.";
+    await ladeDaten();
+  } catch (error) {
+    apiFehler.value = error.message;
+  }
+}
+
+async function reparaturAbschliessen(reparaturId) {
+  apiFehler.value = "";
+  erfolgsMeldung.value = "";
+
+  try {
+    await apiRequest(`/reparaturen/${reparaturId}/abschliessen`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        neuer_status: "verfuegbar",
+        neuer_zustand: "gut",
+        abschluss_notiz: "Reparatur in der Arbeitsoberflaeche abgeschlossen."
+      })
+    });
+
+    erfolgsMeldung.value = "Reparatur wurde abgeschlossen.";
+    await ladeDaten();
+  } catch (error) {
+    apiFehler.value = error.message;
+  }
+}
+
+function onLoeschenDialogEsc(e) {
+  if (e.key !== "Escape") return;
+  loeschenDialog.value = false;
+  historieLoeschenDialog.value = false;
+}
+watch([loeschenDialog, historieLoeschenDialog], ([loeschenOffen, historieOffen]) => {
+  if (loeschenOffen || historieOffen) window.addEventListener("keydown", onLoeschenDialogEsc);
+  else window.removeEventListener("keydown", onLoeschenDialogEsc);
+});
+
+function geraeteAuswahlLoeschenAnfragen() {
+  if (geraeteAusgewaehlt.value.size === 0) return;
+  loeschenFehler.value = "";
+  loeschenDialog.value = true;
+}
+
+async function geraeteAuswahlLoeschenBestaetigen() {
+  const ids = [...geraeteAusgewaehlt.value];
+  if (ids.length === 0) return;
+
+  loeschenFehler.value = "";
+  apiFehler.value = "";
+  erfolgsMeldung.value = "";
+
+  try {
+    const response = await apiRequest("/exemplare", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids })
+    });
+    loeschenDialog.value = false;
+    erfolgsMeldung.value = response.meldung;
+    geraeteAusgewaehlt.value = new Set();
+    await ladeUebersicht();
+  } catch (error) {
+    loeschenFehler.value = error.message;
+  }
+}
+
+function appResetResult() {
+  resetResult();
+  ausleiheForm.value.exemplar_id = "";
+  ausleiheForm.value.ausleiher_id = "";
+  ausleiheForm.value.faellig_am = standardFaelligkeitAusleihe();
+  ausleiheForm.value.kommentar_ausgabe = "";
+  rueckgabeForm.value = {
+    ausleihe_id: "",
+    zustand_bei_rueckgabe: "gut",
+    kommentar_rueckgabe: ""
+  };
+  verlaengerungForm.value = {
+    ausleihe_id: "",
+    faellig_am: "",
+    kommentar_verlaengerung: ""
+  };
+}
+
+function formatDatum(isoWert) {
+  if (!isoWert) return "offen";
+
+  return new Intl.DateTimeFormat("de-DE", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  }).format(new Date(isoWert));
+}
+
+function formatiereDatumAlsTagesende(datumswert) {
+  if (!datumswert) {
+    return "";
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(datumswert)) {
+    return `${datumswert} 23:59:59`;
+  }
+
+  const datum = new Date(datumswert);
+
+  if (Number.isNaN(datum.getTime())) {
+    return datumswert;
+  }
+
+  const pad = (wert) => String(wert).padStart(2, "0");
+
+  return `${datum.getFullYear()}-${pad(datum.getMonth() + 1)}-${pad(datum.getDate())} 23:59:59`;
+}
+
+function formatFuerDatetimeLocal(isoWert) {
+  if (!isoWert) return "";
+
+  const datum = new Date(isoWert);
+
+  if (Number.isNaN(datum.getTime())) {
+    return "";
+  }
+
+  const pad = (wert) => String(wert).padStart(2, "0");
+
+  return `${datum.getFullYear()}-${pad(datum.getMonth() + 1)}-${pad(datum.getDate())}T${pad(
+    datum.getHours()
+  )}:${pad(datum.getMinutes())}`;
+}
+
+function formatFuerDatetimeLocalPlusTage(isoWert, tage) {
+  if (!isoWert) return "";
+
+  const datum = new Date(isoWert);
+
+  if (Number.isNaN(datum.getTime())) {
+    return "";
+  }
+
+  datum.setDate(datum.getDate() + tage);
+  return formatFuerDatetimeLocal(datum.toISOString());
+}
+
+const ausgewaehltesExemplar = computed(() =>
+  exemplare.value.find((eintrag) => eintrag.id === ausgewaehltesExemplarId.value)
+);
+
+const ausgewaehltesBuch = computed(() =>
+  ausgewaehltesExemplar.value?.inventar_typ === "buch" ? ausgewaehltesExemplar.value : null
+);
+
+const gefilterteHistorie = computed(() => {
+  const q = historieFilter.value.trim().toLowerCase();
+  const d = historieDatumFilter.value;
+  return historieEintraege.value.filter((e) => {
+    if (d) {
+      const tag = new Date(e.erstellt_am).toISOString().slice(0, 10);
+      if (tag !== d) return false;
+    }
+    if (q) {
+      return [e.aktion, e.titel, e.inventarnummer, e.ausgeloest_von]
+        .some((f) => f?.toLowerCase().includes(q));
+    }
+    return true;
+  });
+});
+
+const historieNachDatum = computed(() => {
+  const gruppen = new Map();
+  for (const eintrag of gefilterteHistorie.value) {
+    const tag = new Date(eintrag.erstellt_am).toLocaleDateString("de-DE", {
+      weekday: "long", day: "numeric", month: "long", year: "numeric"
+    });
+    if (!gruppen.has(tag)) gruppen.set(tag, []);
+    gruppen.get(tag).push(eintrag);
+  }
+  return gruppen;
+});
+
+const overlayExemplar = computed(() =>
+  exemplare.value.find((eintrag) => eintrag.id === overlayExemplarId.value) ?? null
+);
+
+const overlayBuch = computed(() =>
+  overlayExemplar.value?.inventar_typ === "buch" ? overlayExemplar.value : null
+);
+
+const startSuchergebnisse = computed(() => {
+  const suchtext = startSuche.value.trim().toLowerCase();
+
+  if (!suchtext) {
+    return [];
+  }
+
+  const ergebnisse = [];
+  const geseheneBuecher = new Set();
+
+  for (const eintrag of exemplare.value) {
+    const text = `${eintrag.inventarnummer} ${eintrag.titel} ${eintrag.barcode || ""}`.toLowerCase();
+    if (text.includes(suchtext)) {
+      const offeneAusleihe = offeneAusleihen.value.find(
+        (ausleihe) =>
+          ausleihe.exemplar_id === eintrag.id ||
+          ausleihe.inventarnummer === eintrag.inventarnummer
+      );
+      ergebnisse.push({
+        schluessel: `exemplar-${eintrag.id}`,
+        typ: "exemplar",
+        titel: eintrag.inventarnummer,
+        untertitel: eintrag.titel,
+        detail: eintrag.inventar_typ,
+        meta: [
+          `Status: ${eintrag.status}`,
+          eintrag.status === "ausgeliehen" && offeneAusleihe?.ausleiher_name
+            ? `Ausleiher: ${offeneAusleihe.ausleiher_name}`
+            : null,
+          `Zustand: ${eintrag.zustand}`,
+          `Standort: ${eintrag.standort || "unbekannt"}`
+        ].filter(Boolean),
+        aktion: "Objekt oeffnen",
+        daten: eintrag
+      });
+    }
+
+    if (
+      eintrag.inventar_typ === "buch" &&
+      eintrag.artikel_id &&
+      !geseheneBuecher.has(eintrag.artikel_id) &&
+      `${eintrag.titel} ${eintrag.titelcode || ""} ${eintrag.verlag || ""}`.toLowerCase().includes(suchtext)
+    ) {
+      geseheneBuecher.add(eintrag.artikel_id);
+      ergebnisse.push({
+        schluessel: `buch-${eintrag.artikel_id}`,
+        typ: "buch",
+        titel: eintrag.titel,
+        untertitel: eintrag.verlag || "Buch",
+        detail: eintrag.titelcode || "",
+        meta: [
+          `Status: ${eintrag.status}`,
+          `Standort: ${eintrag.standort || "unbekannt"}`,
+          eintrag.verlag ? `Verlag: ${eintrag.verlag}` : null
+        ].filter(Boolean),
+        aktion: "Buch oeffnen",
+        daten: eintrag
+      });
+    }
+  }
+
+  for (const person of ausleiher.value) {
+    const text = `${person.name} ${person.klasse_oder_bereich || ""} ${person.barcode || ""}`.toLowerCase();
+    if (text.includes(suchtext)) {
+      const aktuelleAusleihen = offeneAusleihen.value
+        .filter((eintrag) => eintrag.ausleiher_name === person.name)
+        .slice(0, 3);
+      ergebnisse.push({
+        schluessel: `ausleiher-${person.id}`,
+        typ: "ausleiher",
+        titel: person.name,
+        untertitel: ausleiherDetailText(person),
+        detail: person.barcode || person.ausleiher_typ,
+        meta: aktuelleAusleihen.length
+          ? aktuelleAusleihen.map((eintrag) => `${eintrag.inventarnummer} · ${eintrag.titel}`)
+          : ["Keine aktuellen Ausleihen"],
+        aktion: person.ausleiher_typ === "klasse" ? "Klassensatz oeffnen" : "Ausleihe starten",
+        daten: person
+      });
+    }
+  }
+
+  return ergebnisse.slice(0, 10);
+});
+
+const offeneSchaeden = computed(() =>
+  schaeden.value.filter((eintrag) => eintrag.status !== "behoben")
+);
+
+const offeneReparaturen = computed(() =>
+  reparaturen.value.filter((eintrag) => eintrag.status === "offen")
+);
+
+const verfuegbareKlassensatzBuecher = computed(() =>
+  exemplare.value.filter(
+    (eintrag) =>
+      eintrag.inventar_typ === "buch" &&
+      eintrag.ist_klassensatz &&
+      eintrag.status === "verfuegbar"
+  )
+);
+
+const klassensatzGruppen = computed(() => {
+  const gruppen = new Map();
+
+  for (const eintrag of verfuegbareKlassensatzBuecher.value) {
+    const schluessel = eintrag.klassensatz_name || eintrag.titel;
+    const vorhanden = gruppen.get(schluessel);
+
+    if (vorhanden) {
+      vorhanden.exemplar_ids.push(eintrag.id);
+      vorhanden.anzahl_verfuegbar += 1;
+    } else {
+      gruppen.set(schluessel, {
+        schluessel,
+        titel: eintrag.titel,
+        verlag: eintrag.verlag || "",
+        klassensatz_name: eintrag.klassensatz_name || "Klassensatz",
+        anzahl_verfuegbar: 1,
+        exemplar_ids: [eintrag.id]
+      });
+    }
+  }
+
+  return [...gruppen.values()].sort((links, rechts) =>
+    links.klassensatz_name.localeCompare(rechts.klassensatz_name, "de")
+  );
+});
+
+function standardfristTageFuerTyp(ausleiherTyp) {
+  switch (ausleiherTyp) {
+    case "lehrkraft":
+      return 14;
+    case "klasse":
+      return 1;
+    default:
+      return 7;
+  }
+}
+
+function standardfristText(ausleiherId) {
+  const person = ausleiher.value.find((eintrag) => eintrag.id === Number(ausleiherId));
+
+  if (!person) {
+    return "Automatische Standardfrist nach Ausleiher-Typ.";
+  }
+
+  return `Standardfrist: ${standardfristTageFuerTyp(person.ausleiher_typ)} Tage`;
+}
+
+function ausleiherDetailText(eintrag) {
+  if (!eintrag) return "";
+
+  if (eintrag.ausleiher_typ === "schueler") {
+    return eintrag.klasse_oder_bereich
+      ? `Schueler, Klasse ${eintrag.klasse_oder_bereich}`
+      : "Schueler";
+  }
+
+  if (eintrag.ausleiher_typ === "lehrkraft") {
+    return eintrag.klasse_oder_bereich
+      ? `Lehrkraft, ${eintrag.klasse_oder_bereich}`
+      : "Lehrkraft";
+  }
+
+  return eintrag.klasse_oder_bereich
+    ? `Klasse, Stufe ${eintrag.klasse_oder_bereich}`
+    : "Klasse";
+}
+
+function startRueckgabeAbbrechen() {
+  rueckgabeForm.value = {
+    ausleihe_id: "",
+    zustand_bei_rueckgabe: "gut",
+    kommentar_rueckgabe: ""
+  };
+}
+
+function startVerlaengerungAbbrechen() {
+  verlaengerungForm.value = {
+    ausleihe_id: "",
+    faellig_am: "",
+    kommentar_verlaengerung: ""
+  };
+}
+
+function findeExemplarFuerAusleihe(suchwert) {
+  const text = suchwert.trim().toLowerCase();
+
+  if (!text) {
+    return null;
+  }
+
+  const verfuegbareListe = verfuegbareExemplare.value;
+
+  return (
+    verfuegbareListe.find(
+      (eintrag) =>
+        eintrag.barcode?.toLowerCase() === text ||
+        eintrag.inventarnummer?.toLowerCase() === text
+    ) ||
+    verfuegbareListe.find((eintrag) => eintrag.titel?.toLowerCase() === text) ||
+    verfuegbareListe.find((eintrag) =>
+      `${eintrag.inventarnummer} ${eintrag.titel} ${eintrag.barcode || ""}`.toLowerCase().includes(text)
+    ) ||
+    null
+  );
+}
+
+function exemplarFuerAusleiheUebernehmen(exemplar, quelle = "Auswahl") {
+  uebernehmeScanExemplar(exemplar);
+  scannerStatus.value = `${exemplar.inventarnummer} fuer die Ausleihe uebernommen (${quelle}).`;
+}
+
+function manuellesAusleiheExemplarSuchen() {
+  const exemplar = findeExemplarFuerAusleihe(ausleiheManuelleExemplarEingabe.value);
+
+  if (!exemplar) {
+    apiFehler.value = "Kein verfuegbares Exemplar zu dieser Eingabe gefunden.";
+    return;
+  }
+
+  apiFehler.value = "";
+  exemplarFuerAusleiheUebernehmen(exemplar, "manuelle Eingabe");
+  ausleiheManuelleExemplarEingabe.value = "";
+}
+
+function scanEingabeAusleiheExemplarUebernehmen() {
+  const exemplar = findeExemplarFuerAusleihe(ausleiheScanExemplarEingabe.value);
+
+  if (!exemplar) {
+    apiFehler.value = "Kein verfuegbares Exemplar zu diesem Scan gefunden.";
+    return;
+  }
+
+  apiFehler.value = "";
+  exemplarFuerAusleiheUebernehmen(exemplar, "Scanfeld");
+  ausleiheScanExemplarEingabe.value = "";
+}
+
+function toggleKlassensatzExemplar(exemplarId) {
+  const vorhandene = new Set(klassensatzForm.value.exemplar_ids);
+
+  if (vorhandene.has(exemplarId)) {
+    vorhandene.delete(exemplarId);
+  } else {
+    vorhandene.add(exemplarId);
+  }
+
+  klassensatzForm.value.exemplar_ids = [...vorhandene];
+}
+
+function istKlassensatzGruppeAusgewaehlt(gruppe) {
+  return gruppe.exemplar_ids.every((id) => klassensatzForm.value.exemplar_ids.includes(id));
+}
+
+function toggleKlassensatzGruppe(gruppe) {
+  const vorhandene = new Set(klassensatzForm.value.exemplar_ids);
+  const istAusgewaehlt = istKlassensatzGruppeAusgewaehlt(gruppe);
+
+  for (const exemplarId of gruppe.exemplar_ids) {
+    if (istAusgewaehlt) {
+      vorhandene.delete(exemplarId);
+    } else {
+      vorhandene.add(exemplarId);
+    }
+  }
+
+  klassensatzForm.value.exemplar_ids = [...vorhandene];
+}
+
+onMounted(ladeDaten);
+
+watch(() => scanDialog.value.ausleiher, (person) => {
+  if (person) {
+    ausleiheForm.value.ausleiher_id = person.id;
+    if (!klassensatzForm.value.ausleiher_id && person.ausleiher_typ === "klasse") {
+      klassensatzForm.value.ausleiher_id = person.id;
+    }
+  }
+});
+
+watch(() => scanDialog.value.exemplar, (exemplar) => {
+  if (exemplar) {
+    ausleiheForm.value.exemplar_id = exemplar.id;
+  }
+});
+
+watch(
+  aktivesModul,
+  (modulId) => {
+    if (["start", "ausleihe", "rueckgabe"].includes(modulId)) {
+      fokussiereScannerEingabe();
+    }
+    if (modulId === "buecher") {
+      geraeteSuche.value = "";
+    }
+  },
+  { immediate: true }
+);
+</script>
+
+<template>
+  <main class="app-shell">
+    <section class="hero-panel">
+      <div>
+        <p class="eyebrow">smedia v0.1</p>
+        <h1>Ausleihzentrale für Schulen</h1>
+        <p class="intro">
+          Für Bücher, Medien, Geräte, etc.
+        </p>
+        <p class="doc-link-row">
+          <a
+            class="doc-link"
+            href="http://localhost:3001/api/docs"
+            target="_blank"
+            rel="noreferrer"
+          >
+            API-Doku oeffnen
+          </a>
+        </p>
+      </div>
+
+      <div class="status-stack">
+        <div class="user-chip">
+          <span class="user-avatar">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+              <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+            </svg>
+          </span>
+          <span class="user-info">
+            <strong>Maria Musterfrau</strong>
+            <small>Bibliothek</small>
+          </span>
+          <button class="logout-btn" title="Abmelden">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+          </button>
+        </div>
+        <p v-if="apiFehler" class="feedback error">{{ apiFehler }}</p>
+        <p v-if="erfolgsMeldung" class="feedback success">{{ erfolgsMeldung }}</p>
+      </div>
+    </section>
+
+    <section class="kennzahlen-grid" v-if="dashboard">
+      <article class="kennzahl">
+        <span>Exemplare gesamt</span>
+        <strong>{{ dashboard.exemplare_gesamt }}</strong>
+      </article>
+      <article class="kennzahl">
+        <span>Verfuegbar</span>
+        <strong>{{ dashboard.verfuegbar }}</strong>
+      </article>
+      <article class="kennzahl">
+        <span>Ausgeliehen</span>
+        <strong>{{ dashboard.ausgeliehen }}</strong>
+      </article>
+      <article class="kennzahl">
+        <span>Problemfaelle</span>
+        <strong>{{ dashboard.problemfaelle }}</strong>
+      </article>
+      <article class="kennzahl">
+        <span>Buecher</span>
+        <strong>{{ dashboard.buecher }}</strong>
+      </article>
+      <article class="kennzahl">
+        <span>Geraete</span>
+        <strong>{{ dashboard.geraete }}</strong>
+      </article>
+    </section>
+
+    <ModulNavigation
+      :module="modulNavigation"
+      :aktives-modul="aktivesModul"
+      @wechsel="wechsleModul"
+    />
+
+    <!-- Dynamisches Rendern der Routen über Vue Router -->
+    <router-view v-slot="{ Component }">
+      <component
+        :is="Component"
+        :modus="aktivesModul"
+        :scanner-geraet-label="scannerGeraetLabel"
+        :manuelle-code-eingabe="manuelleCodeEingabe"
+        :scanner-status="scannerStatus"
+        :scan-result="scanResult"
+        :scan-type="scanType"
+        :last-error="lastError"
+        :scan-dialog="scanDialog"
+        :scan-bereit-zur-ausleihe="scanBereitZurAusleihe"
+        :scan-bereit-zur-rueckgabe="scanBereitZurRueckgabe"
+        :scan-dialog-hinweis="scanHinweisText"
+        :scan-offene-ausleihen-des-ausleihers="scanOffeneAusleihenDesAusleihers"
+        :markierte-scan-ausleihen="markierteScanAusleihen"
+        :ausleihe-form="ausleiheForm"
+        :rueckgabe-form="rueckgabeForm"
+        :verlaengerung-form="verlaengerungForm"
+        :scan-offene-ausleihe-zur-rueckgabe="scanAktiveAusleihe"
+        :lehrkraft-ausleiher="lehrkraftAusleiher"
+        :schueler-ausleiher="schuelerAusleiher"
+        :klassen-ausleiher="klassenAusleiher"
+        :standardfrist-text="standardfristText"
+        :format-datum="formatDatum"
+        :ausleiher-detail-text="ausleiherDetailText"
+        :exemplar-hat-warnstatus="exemplarHatWarnstatus"
+        :exemplar-warntext="exemplarWarntext"
+        :offene-ausleihen="offeneAusleihen"
+        :historie-eintraege="historieEintraege"
+        :ausleihe-manuelle-exemplar-eingabe="ausleiheManuelleExemplarEingabe"
+        :ausleihe-scan-exemplar-eingabe="ausleiheScanExemplarEingabe"
+        :klassensatz-form="klassensatzForm"
+        :klassensatz-gruppen="klassensatzGruppen"
+        :ist-klassensatz-gruppe-ausgewaehlt="istKlassensatzGruppeAusgewaehlt"
+        :exemplare="exemplare"
+        :laedt-daten="laedtDaten"
+        :ausgewaehltes-exemplar="ausgewaehltesExemplar"
+        :ausgewaehltes-buch="ausgewaehltesBuch"
+        :ausgewaehltes-exemplar-id="ausgewaehltesExemplarId"
+        :exemplar-form="exemplarForm"
+        :standorte="standorte"
+        :objekt-historie="objektHistorie"
+        :objekt-historie-seite="objektHistorieSeite"
+        :objekt-historie-gesamt="objektHistorieGesamt"
+        :objekt-historie-limit="objektHistorieLimit"
+        :geraete-gefiltert="geraeteGefiltert"
+        :geraete-suche="geraeteSuche"
+        :geraete-alle-ausgewaehlt="geraeteAlleAusgewaehlt"
+        :geraete-ausgewaehlt="geraeteAusgewaehlt"
+        :faecher="faecher"
+        :herkunft="herkunft"
+        :api-request="apiRequest"
+        :externer-buch-titelcode="externerBuchTitelcode"
+        :barcode-druck-eintraege="barcodeDruckEintraege"
+        :druck-kategorie="druckKategorie"
+        :druck-code-format="druckCodeFormat"
+        :druck-filter="druckFilter"
+        :druck-filter-aktiv="druckFilterAktiv"
+        :inventar-typen-fuer-druck="inventarTypenFuerDruck"
+        :statuswerte-fuer-druck="statuswerteFuerDruck"
+        :standorte-fuer-druck="standorteFuerDruck"
+        :klassen-fuer-druck="klassenFuerDruck"
+        :fachbereiche-fuer-druck="fachbereicheFuerDruck"
+        :qr-code-svg-map="qrCodeSvgMap"
+        :code39-svg="code39Svg"
+        :offene-schaeden="offeneSchaeden"
+        :offene-reparaturen="offeneReparaturen"
+        :schaden-form="schadenForm"
+        :reparatur-form="reparaturForm"
+        :reparaturen="reparaturen"
+        :historie-gesamt="historieGesamt"
+        :historie-datum-filter="historieDatumFilter"
+        :historie-filter="historieFilter"
+        :historie-nach-datum="historieNachDatum"
+        :historie-hat-buchlink="historieHatBuchlink"
+        :historie-loesch-tage="historieLoeschTage"
+        :historie-kann-mehr-laden="historieKannMehrLaden"
+        :historie-laedt-mehr="historieLaedtMehr"
+        @update:manuelle-code-eingabe="manuelleCodeEingabe = $event"
+        @update:markierte-scan-ausleihen="markierteScanAusleihen = $event"
+        @manuelle-pruefung="manuelleCodePruefung"
+        @scan-bestaetigen="scanAusleiheBestaetigen"
+        @ausleihe-starten="ausleiheSpeichernMitOptionen({ behalteAusleiher: true })"
+        @scan-rueckgabe="scanRueckgabeBestaetigen"
+        @scan-verlaengern="scanVerlaengerungOeffnen"
+        @rueckgabe-buchen="rueckgabeSpeichern"
+        @rueckgabe-abbrechen="startRueckgabeAbbrechen"
+        @verlaengerung-speichern="verlaengerungSpeichern"
+        @verlaengerung-abbrechen="startVerlaengerungAbbrechen"
+        @scan-zuruecksetzen="appResetResult"
+        @update:ausleihe-manuelle-exemplar-eingabe="ausleiheManuelleExemplarEingabe = $event"
+        @update:ausleihe-scan-exemplar-eingabe="ausleiheScanExemplarEingabe = $event"
+        @suche-manuell="manuellesAusleiheExemplarSuchen"
+        @scan-uebernehmen="scanEingabeAusleiheExemplarUebernehmen"
+        @ausleihe-speichern="ausleiheSpeichern"
+        @rueckgabe-speichern="rueckgabeSpeichern"
+        @toggle-klassensatz-gruppe="toggleKlassensatzGruppe"
+        @klassensatz-speichern="klassensatzAusgabeSpeichern"
+        @update:ausgewaehltes-exemplar-id="ausgewaehltesExemplarId = $event"
+        @waehle-exemplar="waehleExemplar"
+        @exemplar-speichern="exemplarSpeichern"
+        @historie-seite-wechseln="ladeObjektHistorie(ausgewaehltesExemplarId, $event)"
+        @update:externer-buch-titelcode="externerBuchTitelcode = $event"
+        @zeige-erfolg="erfolgsMeldung = $event"
+        @zeige-fehler="apiFehler = $event"
+        @zeige-scanner-status="scannerStatus = $event"
+        @lade-daten="ladeDaten"
+        @update:geraete-suche="geraeteSuche = $event"
+        @update:geraete-alle-ausgewaehlt="geraeteAlleAusgewaehlt = $event"
+        @toggle-geraet-auswahl="toggleKlassensatzExemplar"
+        @geraete-auswahl-loeschen-anfragen="geraeteAuswahlLoeschenAnfragen"
+        @bearbeite-geraet="springeZurObjektpflege"
+        @update:druck-kategorie="druckKategorie = $event"
+        @update:druck-code-format="druckCodeFormat = $event"
+        @drucke-barcodes="druckeBarcodes"
+        @druckfilter-zuruecksetzen="druckFilterZuruecksetzen"
+        @schaden-speichern="schadenSpeichern"
+        @reparatur-starten="reparaturStarten"
+        @reparatur-abschliessen="reparaturAbschliessen"
+        @update:historie-datum-filter="historieDatumFilter = $event"
+        @update:historie-filter="historieFilter = $event"
+        @update:historie-loesch-tage="historieLoeschTage = $event"
+        @zeige-buchdetails="zeigeBuchdetailsAusHistorie"
+        @historie-loeschen="historieLoeschenAnfragen"
+        @historie-mehr-laden="ladeWeitereHistorie"
+      />
+    </router-view>
+
+    <!-- Bestätigungs-Overlay Löschen -->
+    <Teleport to="body">
+      <div v-if="loeschenDialog" class="overlay-backdrop" @click.self="loeschenDialog = false">
+        <div class="confirm-dialog">
+          <h3>Exemplare löschen</h3>
+          <p>
+            {{ geraeteAusgewaehlt.size }} Exemplar{{ geraeteAusgewaehlt.size === 1 ? '' : 'e' }}
+            unwiderruflich löschen?
+          </p>
+          <p v-if="loeschenFehler" class="confirm-dialog-fehler">{{ loeschenFehler }}</p>
+          <div class="confirm-dialog-actions">
+            <button class="btn-secondary" @click="loeschenDialog = false">Abbrechen</button>
+            <button class="danger" @click="geraeteAuswahlLoeschenBestaetigen">Löschen</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="historieLoeschenDialog" class="overlay-backdrop" @click.self="historieLoeschenDialog = false">
+        <div class="confirm-dialog">
+          <h3>Historie bereinigen</h3>
+          <p>
+            Alle Historie-Eintraege unwiderruflich loeschen, die aelter als
+            {{ historieLoeschTage }} Tage sind?
+          </p>
+          <p v-if="loeschenFehler" class="confirm-dialog-fehler">{{ loeschenFehler }}</p>
+          <div class="confirm-dialog-actions">
+            <button class="btn-secondary" @click="historieLoeschenDialog = false">Abbrechen</button>
+            <button class="danger" @click="historieLoeschen">Loeschen</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Buch-Overlay aus Historie -->
+    <Teleport to="body">
+      <div v-if="overlayExemplarId" class="overlay-backdrop" @click.self="overlayExemplarId = null">
+        <div class="overlay-panel">
+          <div class="overlay-head">
+            <div>
+              <h2>{{ overlayExemplar?.titel ?? '—' }}</h2>
+              <span class="subtle">{{ overlayExemplar?.inventarnummer }}</span>
+            </div>
+            <button class="overlay-close" @click="overlayExemplarId = null">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="overlay-body">
+            <div v-if="overlayExemplar?.cover_bild || overlayExemplar?.cover_url" class="buch-cover-box">
+              <img
+                :src="overlayExemplar.cover_bild || overlayExemplar.cover_url"
+                    :alt="`Cover von ${overlayExemplar?.titel}`"
+                    class="buch-cover"
+                  />
+                </div>
+                
+                <div class="historie-liste" style="margin-top: 1rem;">
+                  <article v-for="eintrag in (overlayHistorie.eintraege || overlayHistorie)" :key="`overlay-hist-${eintrag.id}`" class="historie-eintrag">
+                    <div class="historie-kopf">
+                      <strong>{{ eintrag.titel }}</strong>
+                      <span>{{ formatDatum(eintrag.erstellt_am) }}</span>
+                    </div>
+                    <p>{{ eintrag.details }}</p>
+                  </article>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Teleport>
+  </main>
+</template>

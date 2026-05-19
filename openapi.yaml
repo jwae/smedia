@@ -1,0 +1,659 @@
+openapi: 3.0.3
+info:
+  title: smedia API
+  version: 1.0.0
+  description: API fuer Schulinventar, Ausleihe, Rueckgabe und Historie.
+servers:
+  - url: http://localhost:3001
+    description: Lokales Backend
+tags:
+  - name: System
+  - name: Uebersicht
+  - name: Exemplare
+  - name: Schueler
+  - name: Lehrkraefte
+  - name: Ausleiher
+  - name: Ausleihen
+  - name: Klassensaetze
+  - name: Historie
+  - name: Standorte
+paths:
+  /api/gesundheit:
+    get:
+      tags: [System]
+      summary: Health-Check des Backends
+      responses:
+        '200':
+          description: Backend erreichbar
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  server_zeit:
+                    type: string
+                    format: date-time
+  /api/uebersicht:
+    get:
+      tags: [Uebersicht]
+      summary: Dashboard-Kennzahlen und offene Ausleihen
+      responses:
+        '200':
+          description: Uebersicht erfolgreich geladen
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  kennzahlen:
+                    $ref: '#/components/schemas/Kennzahlen'
+                  offene_ausleihen:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/OffeneAusleihe'
+  /api/exemplare:
+    get:
+      tags: [Exemplare]
+      summary: Exemplarliste laden
+      parameters:
+        - in: query
+          name: typ
+          schema:
+            type: string
+          description: Filter auf einen Inventartyp, z. B. buch
+        - in: query
+          name: nur_verfuegbar
+          schema:
+            type: integer
+            enum: [1]
+          description: Nur verfuegbare Exemplare laden
+      responses:
+        '200':
+          description: Exemplare erfolgreich geladen
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Exemplar'
+  /api/exemplare/{id}:
+    patch:
+      tags: [Exemplare]
+      summary: Exemplar auf Objektebene aktualisieren
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExemplarUpdate'
+      responses:
+        '200':
+          description: Exemplar aktualisiert
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meldung'
+        '404':
+          description: Exemplar nicht gefunden
+  /api/schueler:
+    get:
+      tags: [Schueler]
+      summary: Schueler mit aktueller Klassenzuordnung laden
+      responses:
+        '200':
+          description: Schueler erfolgreich geladen
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Schueler'
+  /api/lehrkraefte:
+    get:
+      tags: [Lehrkraefte]
+      summary: Lehrkraefte laden
+      responses:
+        '200':
+          description: Lehrkraefte erfolgreich geladen
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Lehrkraft'
+  /api/buecher/lookup/{titelcode}:
+    get:
+      tags: [Exemplare]
+      summary: Online-Metadaten zu einem Buchtitel per Titelcode suchen
+      parameters:
+        - in: path
+          name: titelcode
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Online-Titel gefunden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuchOnlineTreffer'
+        '404':
+          description: Online kein Treffer
+  /api/ausleiher:
+    get:
+      tags: [Ausleiher]
+      summary: Aktive Ausleiher laden
+      responses:
+        '200':
+          description: Ausleiher erfolgreich geladen
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Ausleiher'
+  /api/ausleiher/synchronisieren:
+    post:
+      tags: [Ausleiher]
+      summary: Ausleiher aus Schuelern, Lehrkraeften und Klassen synchronisieren
+      responses:
+        '200':
+          description: Synchronisierung erfolgreich
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AusleiherSynchronisierungAntwort'
+  /api/ausleihen:
+    post:
+      tags: [Ausleihen]
+      summary: Neue Ausleihe anlegen
+      description: Wenn `faellig_am` leer bleibt, setzt das Backend automatisch eine Standardfrist nach Ausleiher-Typ. Lehrkraft 14 Tage, Schueler 7 Tage, Klasse 1 Tag.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AusleiheAnlegen'
+      responses:
+        '201':
+          description: Ausleihe erfasst
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AusleiheAntwort'
+        '400':
+          description: Pflichtfelder fehlen
+        '409':
+          description: Exemplar nicht verfuegbar
+  /api/klassensaetze/ausgabe:
+    post:
+      tags: [Klassensaetze]
+      summary: Mehrere Buch-Exemplare als Klassensatz ausgeben
+      description: Gibt mehrere verfuegbare Buch-Exemplare in einem Schritt aus. Wenn `faellig_am` leer bleibt, setzt das Backend fuer Klassen standardmaessig 1 Tag.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KlassensatzAusgabe'
+      responses:
+        '201':
+          description: Klassensatz-Ausgabe erfasst
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KlassensatzAusgabeAntwort'
+        '400':
+          description: Pflichtfelder fehlen
+        '409':
+          description: Mindestens ein Exemplar ist nicht verfuegbar oder kein Klassensatz-Buch
+  /api/ausleihen/{id}/rueckgabe:
+    post:
+      tags: [Ausleihen]
+      summary: Rueckgabe verbuchen
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RueckgabeBuchen'
+      responses:
+        '200':
+          description: Rueckgabe verbucht
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meldung'
+        '404':
+          description: Ausleihe nicht gefunden
+  /api/ausleihen/{id}/verlaengern:
+    post:
+      tags: [Ausleihen]
+      summary: Offene Ausleihe verlaengern
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AusleiheVerlaengern'
+      responses:
+        '200':
+          description: Ausleihe verlaengert
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AusleiheAntwort'
+        '404':
+          description: Ausleihe nicht gefunden
+  /api/historie:
+    get:
+      tags: [Historie]
+      summary: Historieneintraege laden
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+        - in: query
+          name: exemplar_id
+          schema:
+            type: integer
+          description: Optionaler Filter auf ein Exemplar
+      responses:
+        '200':
+          description: Historie erfolgreich geladen
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HistorieEintrag'
+  /api/standorte:
+    get:
+      tags: [Standorte]
+      summary: Standorte laden
+      responses:
+        '200':
+          description: Standorte erfolgreich geladen
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Standort'
+components:
+  schemas:
+    Meldung:
+      type: object
+      properties:
+        meldung:
+          type: string
+    Kennzahlen:
+      type: object
+      properties:
+        exemplare_gesamt:
+          type: integer
+        verfuegbar:
+          type: integer
+        ausgeliehen:
+          type: integer
+        problemfaelle:
+          type: integer
+        buecher:
+          type: integer
+        geraete:
+          type: integer
+    Faelligkeit:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ueberfaellig
+        klasse:
+          type: string
+          example: faellig-kritisch
+        text:
+          type: string
+          example: ueberfaellig
+        symbol:
+          type: string
+          example: '!'
+    OffeneAusleihe:
+      type: object
+      properties:
+        id:
+          type: integer
+        inventarnummer:
+          type: string
+        titel:
+          type: string
+        ausleiher_name:
+          type: string
+        ausleiher_typ:
+          type: string
+        klasse_oder_bereich:
+          type: string
+          nullable: true
+        ausgabe_am:
+          type: string
+          format: date-time
+        faellig_am:
+          type: string
+          format: date-time
+          nullable: true
+        zustand_bei_ausgabe:
+          type: string
+        faelligkeit:
+          $ref: '#/components/schemas/Faelligkeit'
+    Exemplar:
+      type: object
+      properties:
+        id:
+          type: integer
+        inventarnummer:
+          type: string
+        barcode:
+          type: string
+        seriennummer:
+          type: string
+          nullable: true
+        titel:
+          type: string
+        inventar_typ:
+          type: string
+        standort:
+          type: string
+          nullable: true
+        standort_id:
+          type: integer
+          nullable: true
+        status:
+          type: string
+        zustand:
+          type: string
+        notizen:
+          type: string
+          nullable: true
+        ist_klassensatz:
+          type: boolean
+        klassensatz_name:
+          type: string
+          nullable: true
+    ExemplarUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+        zustand:
+          type: string
+        standort_id:
+          type: integer
+          nullable: true
+        notizen:
+          type: string
+          nullable: true
+        ausgeloest_von:
+          type: string
+    Ausleiher:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        ausleiher_typ:
+          type: string
+        klasse_oder_bereich:
+          type: string
+          nullable: true
+        barcode:
+          type: string
+          nullable: true
+        quelle_typ:
+          type: string
+          nullable: true
+        quelle_id:
+          type: integer
+          nullable: true
+    Schueler:
+      type: object
+      properties:
+        id:
+          type: integer
+        vorname:
+          type: string
+        nachname:
+          type: string
+        anzeigename:
+          type: string
+        barcode:
+          type: string
+          nullable: true
+        geburtsdatum:
+          type: string
+          format: date
+          nullable: true
+        aktiv:
+          type: boolean
+        notizen:
+          type: string
+          nullable: true
+        klassen_id:
+          type: integer
+          nullable: true
+        klasse:
+          type: string
+          nullable: true
+        schuljahr:
+          type: string
+          nullable: true
+    Lehrkraft:
+      type: object
+      properties:
+        id:
+          type: integer
+        kuerzel:
+          type: string
+          nullable: true
+        anrede:
+          type: string
+          nullable: true
+        vorname:
+          type: string
+        nachname:
+          type: string
+        anzeigename:
+          type: string
+        barcode:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        fachbereich:
+          type: string
+          nullable: true
+        aktiv:
+          type: boolean
+        notizen:
+          type: string
+          nullable: true
+    BuchOnlineTreffer:
+      type: object
+      properties:
+        quelle:
+          type: string
+        titelcode:
+          type: string
+        titel:
+          type: string
+          nullable: true
+        untertitel:
+          type: string
+          nullable: true
+        autoren:
+          type: array
+          items:
+            type: string
+        verlag:
+          type: string
+          nullable: true
+        veroeffentlicht:
+          type: string
+          nullable: true
+    AusleiherSynchronisierungAntwort:
+      type: object
+      properties:
+        meldung:
+          type: string
+        statistik:
+          type: object
+          properties:
+            schueler:
+              type: integer
+            lehrkraefte:
+              type: integer
+            klassen:
+              type: integer
+    AusleiheAnlegen:
+      type: object
+      required: [exemplar_id, ausleiher_id]
+      properties:
+        exemplar_id:
+          type: integer
+        ausleiher_id:
+          type: integer
+        faellig_am:
+          type: string
+          format: date-time
+          nullable: true
+        kommentar_ausgabe:
+          type: string
+          nullable: true
+    AusleiheAntwort:
+      type: object
+      properties:
+        id:
+          type: integer
+        meldung:
+          type: string
+        faellig_am:
+          type: string
+          format: date-time
+          description: Wirksame Faelligkeit nach manueller Eingabe oder automatischer Standardfrist
+    KlassensatzAusgabe:
+      type: object
+      required: [ausleiher_id, exemplar_ids]
+      properties:
+        ausleiher_id:
+          type: integer
+          description: Sollte in der Regel auf einen Ausleiher vom Typ `klasse` zeigen
+        exemplar_ids:
+          type: array
+          items:
+            type: integer
+        faellig_am:
+          type: string
+          format: date-time
+          nullable: true
+        kommentar_ausgabe:
+          type: string
+          nullable: true
+    KlassensatzAusgabeAntwort:
+      type: object
+      properties:
+        meldung:
+          type: string
+        anzahl:
+          type: integer
+        faellig_am:
+          type: string
+          format: date-time
+        ausleihen:
+          type: array
+          items:
+            type: integer
+    RueckgabeBuchen:
+      type: object
+      required: [zustand_bei_rueckgabe]
+      properties:
+        zustand_bei_rueckgabe:
+          type: string
+        kommentar_rueckgabe:
+          type: string
+    AusleiheVerlaengern:
+      type: object
+      required: [faellig_am]
+      properties:
+        faellig_am:
+          type: string
+          format: date-time
+        kommentar_verlaengerung:
+          type: string
+          nullable: true
+    HistorieEintrag:
+      type: object
+      properties:
+        id:
+          type: integer
+        bezug_typ:
+          type: string
+        bezug_id:
+          type: integer
+          nullable: true
+        exemplar_id:
+          type: integer
+          nullable: true
+        ausleihe_id:
+          type: integer
+          nullable: true
+        aktion:
+          type: string
+        titel:
+          type: string
+        details:
+          type: string
+          nullable: true
+        ausgeloest_von:
+          type: string
+        erstellt_am:
+          type: string
+          format: date-time
+        inventarnummer:
+          type: string
+          nullable: true
+        artikel_titel:
+          type: string
+          nullable: true
+    Standort:
+      type: object
+      properties:
+        id:
+          type: integer
+        bezeichnung:
+          type: string
+        standort_typ:
+          type: string
+          nullable: true

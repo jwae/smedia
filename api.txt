@@ -1,0 +1,362 @@
+API-Uebersicht
+
+Basis
+- Backend: http://localhost:3001
+- API-Basis lokal via Vite-Proxy: /api
+
+Format
+- JSON fuer Request und Response
+- Fehlerantworten enthalten in der Regel:
+  - fehler
+
+1. GET /api/gesundheit
+Zweck:
+- einfacher Health-Check des Backends und der Datenbankverbindung
+
+Response Beispiel:
+{
+  "ok": true,
+  "server_zeit": "2026-04-08T22:00:00.000Z"
+}
+
+2. GET /api/uebersicht
+Zweck:
+- liefert Dashboard-Kennzahlen und offene Ausleihen
+
+Response Struktur:
+{
+  "kennzahlen": {
+    "exemplare_gesamt": 10,
+    "verfuegbar": 5,
+    "ausgeliehen": 1,
+    "problemfaelle": 0,
+    "buecher": 5,
+    "geraete": 5
+  },
+  "offene_ausleihen": [
+    {
+      "id": 4,
+      "inventarnummer": "BUCH-DE-001",
+      "titel": "Deutsch 7",
+      "ausleiher_name": "Frau Becker",
+      "ausleiher_typ": "lehrkraft",
+      "klasse_oder_bereich": "Deutsch",
+      "ausgabe_am": "2026-04-08T08:00:00.000Z",
+      "faellig_am": "2026-04-05T23:36:30.000Z",
+      "zustand_bei_ausgabe": "sehr_gut",
+      "faelligkeit": {
+        "status": "ueberfaellig",
+        "klasse": "faellig-kritisch",
+        "text": "ueberfaellig",
+        "symbol": "!"
+      }
+    }
+  ]
+}
+
+Wichtig:
+- offene_ausleihen sind serverseitig bereits nach Dringlichkeit sortiert
+- faelligkeit wird serverseitig berechnet
+
+3. GET /api/exemplare
+Zweck:
+- liefert die Exemplarliste fuer Inventaransicht und Objektpflege
+
+Query-Parameter:
+- typ
+  Beispiel: /api/exemplare?typ=buch
+- nur_verfuegbar=1
+  Beispiel: /api/exemplare?nur_verfuegbar=1
+
+Response Felder pro Eintrag:
+- id
+- inventarnummer
+- barcode
+- seriennummer
+- titel
+- inventar_typ
+- standort
+- standort_id
+- status
+- zustand
+- notizen
+- ist_klassensatz
+- klassensatz_name
+
+Beispiel:
+{
+  "id": 1,
+  "inventarnummer": "IPAD-001",
+  "barcode": "G-IPAD-001",
+  "seriennummer": "SN-IPAD-001",
+  "titel": "iPad 10. Generation 64 GB",
+  "inventar_typ": "tablet",
+  "standort": "Medienraum",
+  "standort_id": 1,
+  "status": "verfuegbar",
+  "zustand": "sehr_gut",
+  "notizen": "Einsatz fuer mobile Ausleihe.",
+  "ist_klassensatz": false,
+  "klassensatz_name": null
+}
+
+4. GET /api/ausleiher
+Zweck:
+- liefert alle aktiven Ausleiher
+
+Response Felder:
+- id
+- name
+- ausleiher_typ
+- klasse_oder_bereich
+- barcode
+- quelle_typ
+- quelle_id
+
+Beispiel:
+{
+  "id": 1,
+  "name": "Frau Becker",
+  "ausleiher_typ": "lehrkraft",
+  "klasse_oder_bereich": "Deutsch",
+  "barcode": "P-LEHR-001",
+  "quelle_typ": null,
+  "quelle_id": null
+}
+
+4a. GET /api/schueler
+Zweck:
+- liefert Schueler mit aktueller Klassenzuordnung
+
+Response Felder:
+- id
+- vorname
+- nachname
+- anzeigename
+- barcode
+- geburtsdatum
+- aktiv
+- notizen
+- klassen_id
+- klasse
+- schuljahr
+
+4b. GET /api/lehrkraefte
+Zweck:
+- liefert Lehrkraefte-Stammdaten
+
+Response Felder:
+- id
+- kuerzel
+- anrede
+- vorname
+- nachname
+- anzeigename
+- barcode
+- email
+- fachbereich
+- aktiv
+- notizen
+
+4c. POST /api/ausleiher/synchronisieren
+Zweck:
+- synchronisiert `ausleiher` aus den Fachtabellen `schueler`, `lehrkraefte` und `klassen`
+
+Verhalten:
+- legt fehlende Ausleiher an
+- aktualisiert Namen, Barcodes und Zuordnungsfelder
+- setzt veraltete synchronisierte Ausleiher auf inaktiv
+
+Erfolgsantwort:
+{
+  "meldung": "Ausleiher wurden mit den Fachtabellen synchronisiert.",
+  "statistik": {
+    "schueler": 200,
+    "lehrkraefte": 8,
+    "klassen": 86
+  }
+}
+
+5. POST /api/ausleihen
+Zweck:
+- erstellt eine neue Ausleihe fuer ein Exemplar
+
+Request Body:
+{
+  "exemplar_id": 1,
+  "ausleiher_id": 1,
+  "faellig_am": "2026-04-20T12:00",
+  "kommentar_ausgabe": "Fuer Projektwoche"
+}
+
+Pflichtfelder:
+- exemplar_id
+- ausleiher_id
+
+Verhalten:
+- prueft, ob Exemplar existiert
+- prueft, ob Exemplar verfuegbar ist
+- schreibt Ausleihe
+- setzt Exemplarstatus auf ausgeliehen
+- schreibt Historieneintraege
+
+Erfolgsantwort:
+{
+  "id": 9,
+  "meldung": "Ausleihe erfasst."
+}
+
+Moegliche Fehler:
+- 400 wenn exemplar_id oder ausleiher_id fehlt
+- 404 wenn Exemplar nicht gefunden
+- 409 wenn Exemplar nicht verfuegbar
+
+6. POST /api/ausleihen/:id/rueckgabe
+Zweck:
+- verbucht eine Rueckgabe zu einer offenen Ausleihe
+
+Request Body:
+{
+  "zustand_bei_rueckgabe": "gut",
+  "kommentar_rueckgabe": "Vollstaendig zurueck"
+}
+
+Pflichtfelder:
+- zustand_bei_rueckgabe
+
+Verhalten:
+- setzt rueckgabe_am
+- setzt zustand_bei_rueckgabe_id
+- setzt Ausleihstatus auf zurueckgegeben
+- setzt Exemplarstatus auf verfuegbar oder defekt
+- setzt Exemplarzustand
+- schreibt Historieneintraege
+
+Regel:
+- wenn zustand_bei_rueckgabe = beschaedigt
+  dann Exemplarstatus = defekt
+- sonst Exemplarstatus = verfuegbar
+
+Erfolgsantwort:
+{
+  "meldung": "Rueckgabe verbucht."
+}
+
+Moegliche Fehler:
+- 400 bei fehlendem Rueckgabezustand
+- 404 wenn Ausleihe oder Rueckgabezustand nicht gefunden
+- 409 wenn Ausleihe bereits abgeschlossen
+
+7. GET /api/historie
+Zweck:
+- liefert Historieneintraege global oder bezogen auf ein Exemplar
+
+Query-Parameter:
+- limit
+  Beispiel: /api/historie?limit=12
+- exemplar_id
+  Beispiel: /api/historie?exemplar_id=1&limit=20
+
+Response Felder:
+- id
+- bezug_typ
+- bezug_id
+- exemplar_id
+- ausleihe_id
+- aktion
+- titel
+- details
+- ausgeloest_von
+- erstellt_am
+- inventarnummer
+- artikel_titel
+
+Beispiel:
+{
+  "id": 15,
+  "bezug_typ": "exemplar",
+  "bezug_id": 1,
+  "exemplar_id": 1,
+  "ausleihe_id": null,
+  "aktion": "status_aenderung",
+  "titel": "Status geaendert: IPAD-001",
+  "details": "iPad 10. Generation 64 GB wurde von verfuegbar auf ausgeliehen gesetzt.",
+  "ausgeloest_von": "weboberflaeche",
+  "erstellt_am": "2026-04-08T22:10:00.000Z",
+  "inventarnummer": "IPAD-001",
+  "artikel_titel": "iPad 10. Generation 64 GB"
+}
+
+8. GET /api/standorte
+Zweck:
+- liefert bekannte Standorte fuer Objektpflege
+
+Response Felder:
+- id
+- bezeichnung
+- standort_typ
+
+Beispiel:
+{
+  "id": 1,
+  "bezeichnung": "Medienraum",
+  "standort_typ": "raum"
+}
+
+9. PATCH /api/exemplare/:id
+Zweck:
+- aktualisiert Exemplar-Felder direkt auf Objektebene
+
+Request Body:
+{
+  "status": "in_reparatur",
+  "zustand": "beschaedigt",
+  "standort_id": 3,
+  "notizen": "Displaybruch links unten",
+  "ausgeloest_von": "weboberflaeche"
+}
+
+Felder:
+- status optional
+- zustand optional
+- standort_id optional
+- notizen optional
+- ausgeloest_von optional
+
+Verhalten:
+- aktualisiert das Exemplar
+- schreibt Historieneintraege bei echten Aenderungen:
+  - status_aenderung
+  - zustandsaenderung
+  - standortaenderung
+  - notiz_aenderung
+
+Erfolgsantwort:
+{
+  "meldung": "Exemplar aktualisiert."
+}
+
+Moegliche Fehler:
+- 400 bei ungueltiger Exemplar-ID
+- 404 wenn Exemplar nicht gefunden
+
+Aktuelle serverseitige Fälligkeitslogik
+- Quelle: ausleihen.faellig_am
+- Ergebnis wird im Feld offene_ausleihen[].faelligkeit geliefert
+
+Statuswerte:
+- ueberfaellig
+- bald_faellig
+- ohne_frist
+- unkritisch
+
+Zuordnung:
+- faellig_am = NULL -> ohne_frist
+- Datum in Vergangenheit -> ueberfaellig
+- innerhalb naechster 2 Tage -> bald_faellig
+- sonst -> unkritisch
+
+Wichtige Hinweise fuer spaeter
+- Standardfristen aktuell noch nicht automatisch im Backend gesetzt
+- Authentifizierung/Rollen sind noch nicht eingebaut
+- Historie ist bereits objekt- und ausleihbezogen, aber noch ohne Schadensmodul

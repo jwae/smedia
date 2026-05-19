@@ -1,0 +1,33 @@
+1. High-Level Architektur & Tech-Stack
+Das System ist eine klassische Single Page Application (SPA) mit einer RESTful API und einer relationalen Datenbank.
+
+Frontend: Vue.js 3 (gebaut mit Vite), Nutzung der Composition API (<script setup>, ref, computed, watch).
+Backend: Node.js mit Express.js.
+Datenbank: MariaDB (SQL), Kommunikation vermutlich via standardisiertem MySQL/MariaDB-Treiber.
+API-Dokumentation: OpenAPI/Swagger (openapi.yaml).
+2. Datenbank-Design & Domain-Driven Konzepte
+Das relationale Schema (db_struct.txt) zeigt ein durchdachtes Domain-Design, das bekannte Patterns aus der Softwaretechnik anwendet:
+
+Vererbung / Polymorphismus in SQL (Table-per-Type Muster): Es gibt eine strikte Trennung zwischen der abstrakten Entität und der physischen Instanz:
+artikel (Abstraktes Modell, z. B. "iPad 10") $\leftarrow$ 1:n $\rightarrow$ artikel_exemplare (Physisches Gerät mit Seriennummer "SN-123").
+Um produktspezifische Attribute abzubilden, wird eine 1:1-Beziehung zu Spezialisierungs-Tabellen genutzt (buch_details, geraete_details). Das vermeidet Anti-Patterns wie Entity-Attribute-Value (EAV) oder gigantische Tabellen mit unzähligen NULL-Spalten.
+Saubere Zustandstrennung (State Management): Das System unterscheidet zwischen logischem Status (statuskatalog: verfügbar, ausgeliehen, defekt) und physischem Zustand (zustandskatalog: neu, gut, beschädigt).
+Audit Logging / Event Sourcing (Light): Jede relevante Zustandsänderung (Ausleihe, Rückgabe, Statuswechsel) wird in der Tabelle historie_eintraege als unveränderliches Event geloggt (Append-only). Das ermöglicht vollständige Nachvollziehbarkeit (Audit Trail).
+Synchronisations-Muster für Akteure: Schüler, Lehrkräfte und Klassen haben eigene Stammdatentabellen (schueler, lehrkraefte, klassen). Für den Ausleihprozess werden diese über eine Synchronisations-API (/api/ausleiher/synchronisieren) in eine abstrakte Polymorphie-Tabelle ausleiher aggregiert.
+3. Backend & API-Design
+Das Backend exponiert eine REST-API (unter /api/), die im JSON-Format kommuniziert.
+
+Ressourcen-orientiert: Typische CRUD-Endpunkte (/api/exemplare, /api/ausleihen).
+Business Logic im Backend: Der Server agiert als Zustandsautomat (State Machine). Beispiel: Ein POST auf /api/ausleihen/:id/rueckgabe mit dem Body-Parameter zustand_bei_rueckgabe: "beschaedigt" triggert intern nicht nur das Setzen des Rückgabedatums, sondern ändert automatisch den Status des Exemplars auf "defekt" und schreibt einen Historien-Eintrag.
+Serverseitige Berechnungen: Komplexe Domänenlogik wie Fälligkeitsberechnungen (faellig_am) und Dringlichkeitsstufen werden vom Backend berechnet und als abgeleitete Attribute (faelligkeit: { status: "ueberfaellig" ... }) an das Frontend geliefert.
+4. Frontend Architektur (Vue 3)
+Reaktivität & Two-Way-Binding: Komponenten wie MedienverwaltungView.vue nutzen v-model stark für Formulare (z.B. die buchImportForm).
+Asynchrone Workflows: Das Frontend handhabt asynchrone API-Calls nativ (z.B. das Online-Nachschlagen von ISBN/EAN-Codes über externe Schnittstellen).
+Smart Scanning (Context-Aware UI): Die UI ist auf Geschwindigkeit optimiert. Der Barcode-Scanner unterscheidet anhand von Präfixen oder JSON-Strukturen, ob eine Person (USR-123) oder ein Gerät (DEV-456) gescannt wurde. Abhängig vom aktuellen Status des Geräts ändert die UI dynamisch ihren Modus (Status "verfügbar" $\rightarrow$ Modus "Ausleihe starten"; Status "ausgeliehen" $\rightarrow$ Modus "Rückgabe verbuchen").
+5. Technical Debt & Refactoring-Potential (Code Smells)
+Das Projekt befindet sich im Stadium eines fortgeschrittenen Prototyps. Als Informatiker fallen folgende Optimierungspotentiale auf:
+
+Das "God Object" Anti-Pattern im Frontend: Laut der Projektbeschreibung (Projektbild.txt) befindet sich ein Großteil der State-Orchestrierung und Fachlogik zentral in der App.vue. Dies verletzt das Single Responsibility Principle (SRP). Ein Refactoring in Stores (z.B. mit Pinia) oder kleinere, spezialisierte Composables (useScanner, useAusleihe) wäre hier der nächste architektonische Schritt.
+Security (Hardcoded Secrets): Datenbank-Zugangsdaten sind direkt in backend/db.js mit Fallbacks hartcodiert. Dies muss durch Umgebungsvariablen (.env via dotenv) ausgetauscht werden (Stichwort: Twelve-Factor App).
+Fehlende AAA (Authentication, Authorization, Accounting): Das Datenmodell bietet zwar Benutzerrollen-Konzepte (Lehrer, Schüler), aber die API selbst ist aktuell offen. Es fehlt eine Authentifizierung (z.B. JWT) und ein Role-Based Access Control (RBAC) Middleware-Layer im Backend.
+Zusammenfassend: Ein klassisches CRUD+ Informationssystem mit sehr solider, dritter Normalform-orientierter Datenmodellierung, kluger domänengetriebener Prozesslogik (State-Handling, Audit-Log), aber typischen Wachstums-Schmerzen eines Prototyps auf Frontend- und Security-Ebene.

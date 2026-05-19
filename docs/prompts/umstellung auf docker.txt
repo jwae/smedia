@@ -1,0 +1,137 @@
+Du bist ein erfahrener DevOps- und Fullstack-Entwickler.
+
+Ich habe ein bestehendes Projekt mit:
+
+* Vue-Frontend
+* Node.js/Express-Backend
+* MariaDB-Datenbank
+* einer eigenen gemeinsamen Library im Ordner `lib/`
+
+Projektstruktur aktuell:
+
+```text
+projekt/
+├─ frontend/
+├─ backend/
+├─ lib/
+```
+
+Die Anwendung soll vollständig auf Docker umgestellt werden, sodass sie auf jedem System mit Docker lauffähig ist, ohne dass Node.js oder MariaDB lokal installiert werden müssen.
+
+Die gemeinsame Library `lib/` soll sowohl lokal als auch in Docker korrekt eingebunden werden.
+
+Erstelle eine vollständige Dockerisierung des Projekts mit folgenden Anforderungen:
+
+1. Frontend
+
+* Vue-Anwendung
+* Dockerfile erstellen
+* Produktions-Build mit Nginx ausliefern
+* Hot Reload optional für Dev-Modus berücksichtigen
+* gemeinsame `lib/` korrekt einbinden
+
+2. Backend
+
+* Node.js/Express
+* Dockerfile erstellen
+* npm-Dependencies korrekt installieren
+* Start per npm start oder npm run dev
+* gemeinsame `lib/` korrekt einbinden
+
+3. Gemeinsame Library (`lib/`)
+
+* saubere Integration der lokalen gemeinsamen Library
+* bevorzugt als lokale Workspace-/Monorepo-Lösung
+* npm workspaces berücksichtigen
+* korrektes Handling in Docker
+* keine Veröffentlichung auf npm notwendig
+* funktionierende lokale Pfadauflösung
+* Best Practices für gemeinsame Nutzung zwischen Frontend und Backend
+
+4. Datenbank
+
+* MariaDB als offizieller Docker-Container
+* Persistente Speicherung über Docker Volumes
+* Automatischer Import einer init.sql beim ersten Start
+* init.sql ist vorbereitet und liegt im Unterordner DB
+* ENV-basierte Konfiguration
+
+5. Docker Compose
+
+* vollständige docker-compose.yml erstellen
+* Services:
+
+  * frontend
+  * backend
+  * mariadb
+* korrekte Netzwerke und depends_on
+* sinnvolle Portfreigaben
+* Restart-Strategien
+
+6. Umgebungsvariablen
+
+* .env.example erstellen
+* sichere Übergabe von:
+
+  * DB_HOST
+  * DB_USER
+  * DB_PASSWORD
+  * DB_NAME
+
+7. Projektstruktur
+   Erzeuge eine saubere Projektstruktur inklusive:
+
+* frontend/
+* backend/
+* lib/
+* db/
+* docker-compose.yml
+* .env.example
+* .gitignore
+* README.md
+
+8. Git/GitHub
+
+* erkläre, welche Dateien NICHT versioniert werden sollen
+* sinnvolle .gitignore erstellen
+* Workflow für:
+
+  * git clone
+  * docker compose up --build
+
+
+
+10. Development Workflow
+
+* erkläre den optimalen lokalen Entwicklungsworkflow
+* Unterschiede zwischen:
+
+  * lokalem Dev-Modus
+  * Docker-Development
+  * Produktionsbetrieb
+* sinnvolle Hybrid-Lösung erklären
+
+11. Deployment
+
+* erkläre, wie das Projekt:
+
+  * lokal entwickelt
+  * produktiv deployed
+  * auf andere Systeme verteilt
+    werden kann.
+
+12. Ausgabeformat
+    Bitte liefere:
+
+* vollständige Dockerfiles
+* vollständige docker-compose.yml
+* Beispiel-.env.example
+* Beispiel-.gitignore
+* README-Beispiel
+* npm workspace setup
+* Beispiel package.json für Monorepo-Struktur
+* Erklärungen zu jedem Schritt
+* Best Practices
+* typische Fehlerquellen
+
+Das Ziel ist ein vollständig portables Docker-Setup für Entwicklung und Produktion mit gemeinsamer lokaler Library.

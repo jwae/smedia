@@ -1,0 +1,555 @@
+# DB: MariaDB
+
+#DDL:
+CREATE DATABASE IF NOT EXISTS smedia /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci */;
+
+USE smedia;
+-- smedia.app_einstellungen definition
+
+CREATE TABLE `app_einstellungen` (
+  `bereich` varchar(50) NOT NULL,
+  `daten_json` longtext NOT NULL,
+  `aktualisiert_am` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`bereich`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- smedia.artikel_kategorie definition
+
+CREATE TABLE `artikel_kategorie` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `kategorie` varchar(150) NOT NULL,
+  `bemerkung` text DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_artikel_kategorie_kategorie` (`kategorie`)
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- smedia.ausleiharten definition
+
+CREATE TABLE `ausleiharten` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `bezeichnung` varchar(50) NOT NULL,
+  `beschreibung` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_ausleiharten_bezeichnung` (`bezeichnung`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- smedia.ausleiher definition
+
+CREATE TABLE `ausleiher` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(150) NOT NULL,
+  `ausleiher_typ` varchar(50) NOT NULL,
+  `quelle_typ` varchar(30) DEFAULT NULL,
+  `quelle_id` int(10) unsigned DEFAULT NULL,
+  `klasse_oder_bereich` varchar(100) DEFAULT NULL,
+  `barcode` varchar(150) DEFAULT NULL,
+  `aktiv` tinyint(1) NOT NULL DEFAULT 1,
+  `erstellt_am` datetime NOT NULL DEFAULT current_timestamp(),
+  `aktualisiert_am` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_ausleiher_barcode` (`barcode`),
+  UNIQUE KEY `uq_ausleiher_quelle` (`quelle_typ`,`quelle_id`),
+  KEY `idx_ausleiher_typ` (`ausleiher_typ`),
+  KEY `idx_ausleiher_name` (`name`)
+) ENGINE=InnoDB AUTO_INCREMENT=1768 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- smedia.faecher definition
+
+CREATE TABLE `faecher` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `bezeichnung` varchar(100) NOT NULL,
+  `kuerzel` varchar(10) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_faecher_bezeichnung` (`bezeichnung`)
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- smedia.herkunft definition
+
+CREATE TABLE `herkunft` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `bezeichnung` varchar(150) NOT NULL,
+  `notiz` text DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_herkunft_bezeichnung` (`bezeichnung`)
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- smedia.klassen definition
+
+CREATE TABLE `klassen` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `bezeichnung` varchar(10) NOT NULL,
+  `stufe` varchar(10) NOT NULL,
+  `parallelklasse` char(1) DEFAULT NULL,
+  `aktiv` tinyint(1) NOT NULL DEFAULT 1,
+  `erstellt_am` datetime NOT NULL DEFAULT current_timestamp(),
+  `aktualisiert_am` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_klassen_bezeichnung` (`bezeichnung`),
+  KEY `idx_klassen_stufe` (`stufe`)
+) ENGINE=InnoDB AUTO_INCREMENT=186 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- smedia.lehrkraefte definition
+
+CREATE TABLE `lehrkraefte` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `kuerzel` varchar(20) DEFAULT NULL,
+  `anrede` varchar(30) DEFAULT NULL,
+  `vorname` varchar(100) NOT NULL,
+  `nachname` varchar(100) NOT NULL,
+  `anzeigename` varchar(220) NOT NULL,
+  `barcode` varchar(150) DEFAULT NULL,
+  `email` varchar(190) DEFAULT NULL,
+  `fachbereich` varchar(120) DEFAULT NULL,
+  `aktiv` tinyint(1) NOT NULL DEFAULT 1,
+  `notizen` text DEFAULT NULL,
+  `erstellt_am` datetime NOT NULL DEFAULT current_timestamp(),
+  `aktualisiert_am` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_lehrkraefte_kuerzel` (`kuerzel`),
+  UNIQUE KEY `uq_lehrkraefte_barcode` (`barcode`),
+  KEY `idx_lehrkraefte_name` (`nachname`,`vorname`),
+  KEY `idx_lehrkraefte_anzeigename` (`anzeigename`),
+  KEY `idx_lehrkraefte_fachbereich` (`fachbereich`)
+) ENGINE=InnoDB AUTO_INCREMENT=1001 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- smedia.schueler definition
+
+CREATE TABLE `schueler` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `S_ID` int(11) DEFAULT NULL,
+  `vorname` varchar(100) NOT NULL,
+  `nachname` varchar(100) NOT NULL,
+  `anzeigename` varchar(220) NOT NULL,
+  `barcode` varchar(150) DEFAULT NULL,
+  `email` varchar(190) DEFAULT NULL,
+  `geburtsdatum` date DEFAULT NULL,
+  `aktiv` tinyint(1) NOT NULL DEFAULT 1,
+  `notizen` text DEFAULT NULL,
+  `erstellt_am` datetime NOT NULL DEFAULT current_timestamp(),
+  `aktualisiert_am` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_schueler_barcode` (`barcode`),
+  UNIQUE KEY `uq_schueler_email` (`email`),
+  KEY `idx_schueler_name` (`nachname`,`vorname`),
+  KEY `idx_schueler_anzeigename` (`anzeigename`)
+) ENGINE=InnoDB AUTO_INCREMENT=1489 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- smedia.statuskatalog definition
+
+CREATE TABLE `statuskatalog` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `bezeichnung` varchar(50) NOT NULL,
+  `beschreibung` varchar(255) DEFAULT NULL,
+  `ist_ausleihbar` tinyint(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_statuskatalog_bezeichnung` (`bezeichnung`)
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- smedia.vertrags_vorlagen definition
+
+CREATE TABLE `vertrags_vorlagen` (
+  `v_vorlage_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(190) NOT NULL,
+  `typ` varchar(50) NOT NULL,
+  `version` int(11) NOT NULL,
+  `briefkopf_png` longtext DEFAULT NULL,
+  `seitenrand_oben_mm` decimal(5,2) NOT NULL DEFAULT 14.00,
+  `seitenrand_rechts_mm` decimal(5,2) NOT NULL DEFAULT 12.00,
+  `seitenrand_unten_mm` decimal(5,2) NOT NULL DEFAULT 18.00,
+  `seitenrand_links_mm` decimal(5,2) NOT NULL DEFAULT 12.00,
+  `aktiv` tinyint(1) NOT NULL DEFAULT 1,
+  `erstellt_am` datetime NOT NULL DEFAULT current_timestamp(),
+  `aktualisiert_am` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`v_vorlage_id`),
+  UNIQUE KEY `uq_vertrags_vorlagen_typ_version` (`typ`,`version`),
+  KEY `idx_vertrags_vorlagen_typ_aktiv` (`typ`,`aktiv`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- smedia.zustandskatalog definition
+
+CREATE TABLE `zustandskatalog` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `bezeichnung` varchar(50) NOT NULL,
+  `beschreibung` varchar(255) DEFAULT NULL,
+  `sortierung` int(11) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_zustandskatalog_bezeichnung` (`bezeichnung`)
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- smedia.inventar_typen definition
+
+CREATE TABLE `inventar_typen` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `bezeichnung` varchar(50) NOT NULL,
+  `beschreibung` varchar(255) DEFAULT NULL,
+  `ausleihart_id` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_inventar_typen_bezeichnung` (`bezeichnung`),
+  KEY `idx_inventar_typen_ausleihart` (`ausleihart_id`),
+  CONSTRAINT `fk_inventar_typen_ausleihart` FOREIGN KEY (`ausleihart_id`) REFERENCES `ausleiharten` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- smedia.leihvertraege definition
+
+CREATE TABLE `leihvertraege` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `ausleiher_id` int(10) unsigned NOT NULL,
+  `ausleiher_typ` varchar(50) NOT NULL,
+  `erzeugungsdatum` datetime NOT NULL DEFAULT current_timestamp(),
+  `vertragstyp` varchar(50) NOT NULL,
+  `pdf_pfad` varchar(500) NOT NULL,
+  `vorlagen_version` int(11) NOT NULL,
+  `v_vorlage_id` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_leihvertraege_ausleiher` (`ausleiher_id`,`erzeugungsdatum`),
+  KEY `idx_leihvertraege_typ` (`vertragstyp`),
+  KEY `idx_leihvertraege_vorlage` (`v_vorlage_id`),
+  CONSTRAINT `fk_leihvertraege_ausleiher` FOREIGN KEY (`ausleiher_id`) REFERENCES `ausleiher` (`id`),
+  CONSTRAINT `fk_leihvertraege_vorlage` FOREIGN KEY (`v_vorlage_id`) REFERENCES `vertrags_vorlagen` (`v_vorlage_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=55 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- smedia.schueler_klassen definition
+
+CREATE TABLE `schueler_klassen` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `schueler_id` int(10) unsigned NOT NULL,
+  `klassen_id` int(10) unsigned NOT NULL,
+  `schuljahr` varchar(20) NOT NULL,
+  `von_datum` date DEFAULT NULL,
+  `bis_datum` date DEFAULT NULL,
+  `ist_aktuell` tinyint(1) NOT NULL DEFAULT 1,
+  `erstellt_am` datetime NOT NULL DEFAULT current_timestamp(),
+  `aktualisiert_am` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_schueler_klassen_schueler` (`schueler_id`),
+  KEY `idx_schueler_klassen_klasse` (`klassen_id`),
+  KEY `idx_schueler_klassen_schuljahr` (`schuljahr`),
+  KEY `idx_schueler_klassen_aktuell` (`ist_aktuell`),
+  CONSTRAINT `fk_schueler_klassen_klasse` FOREIGN KEY (`klassen_id`) REFERENCES `klassen` (`id`),
+  CONSTRAINT `fk_schueler_klassen_schueler` FOREIGN KEY (`schueler_id`) REFERENCES `schueler` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1545 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- smedia.standorte definition
+
+CREATE TABLE `standorte` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `bezeichnung` varchar(100) NOT NULL,
+  `standort_typ` varchar(50) DEFAULT NULL,
+  `parent_id` int(10) unsigned DEFAULT NULL,
+  `beschreibung` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_standorte_bezeichnung` (`bezeichnung`),
+  KEY `idx_standorte_parent` (`parent_id`),
+  CONSTRAINT `fk_standorte_parent` FOREIGN KEY (`parent_id`) REFERENCES `standorte` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- smedia.vertrags_abschnitte definition
+
+CREATE TABLE `vertrags_abschnitte` (
+  `v_abschnitt_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `v_vorlage_id` int(10) unsigned NOT NULL,
+  `titel` varchar(190) NOT NULL,
+  `abschnitt_art` varchar(50) NOT NULL DEFAULT 'rechtstext',
+  `sortier_nr` int(11) NOT NULL DEFAULT 1,
+  `html_inhalt` longtext NOT NULL,
+  `erstellt_am` datetime NOT NULL DEFAULT current_timestamp(),
+  `aktualisiert_am` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`v_abschnitt_id`),
+  KEY `idx_vertrags_abschnitte_vorlage` (`v_vorlage_id`,`sortier_nr`),
+  CONSTRAINT `fk_vertrags_abschnitte_vorlage` FOREIGN KEY (`v_vorlage_id`) REFERENCES `vertrags_vorlagen` (`v_vorlage_id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=90 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- smedia.artikel definition
+
+CREATE TABLE `artikel` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `inventar_typ_id` int(10) unsigned NOT NULL,
+  `titel` varchar(255) NOT NULL,
+  `interne_bezeichnung` varchar(255) DEFAULT NULL,
+  `beschreibung` text DEFAULT NULL,
+  `hersteller` varchar(150) DEFAULT NULL,
+  `modellbezeichnung` varchar(150) DEFAULT NULL,
+  `herkunft_id` int(10) unsigned DEFAULT NULL,
+  `artikel_kategorie_id` int(10) unsigned DEFAULT NULL,
+  `aktiv` tinyint(1) NOT NULL DEFAULT 1,
+  `erstellt_am` datetime NOT NULL DEFAULT current_timestamp(),
+  `aktualisiert_am` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_artikel_inventar_typ` (`inventar_typ_id`),
+  KEY `idx_artikel_titel` (`titel`),
+  KEY `idx_artikel_herkunft` (`herkunft_id`),
+  KEY `idx_artikel_kategorie` (`artikel_kategorie_id`),
+  CONSTRAINT `fk_artikel_herkunft` FOREIGN KEY (`herkunft_id`) REFERENCES `herkunft` (`id`),
+  CONSTRAINT `fk_artikel_inventar_typ` FOREIGN KEY (`inventar_typ_id`) REFERENCES `inventar_typen` (`id`),
+  CONSTRAINT `fk_artikel_kategorie` FOREIGN KEY (`artikel_kategorie_id`) REFERENCES `artikel_kategorie` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- smedia.artikel_exemplare definition
+
+CREATE TABLE `artikel_exemplare` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `artikel_id` int(10) unsigned NOT NULL,
+  `inventarnummer` varchar(100) NOT NULL,
+  `barcode` varchar(150) NOT NULL,
+  `seriennummer` varchar(150) DEFAULT NULL,
+  `status_id` int(10) unsigned NOT NULL,
+  `zustand_id` int(10) unsigned NOT NULL,
+  `standort_id` int(10) unsigned DEFAULT NULL,
+  `anschaffungsdatum` date DEFAULT NULL,
+  `kaufpreis` decimal(10,2) DEFAULT NULL,
+  `garantie_bis` date DEFAULT NULL,
+  `ist_klassensatz` tinyint(1) NOT NULL DEFAULT 0,
+  `klassensatz_name` varchar(150) DEFAULT NULL,
+  `notizen` text DEFAULT NULL,
+  `aktiv` tinyint(1) NOT NULL DEFAULT 1,
+  `erstellt_am` datetime NOT NULL DEFAULT current_timestamp(),
+  `aktualisiert_am` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_artikel_exemplare_inventarnummer` (`inventarnummer`),
+  UNIQUE KEY `uq_artikel_exemplare_barcode` (`barcode`),
+  UNIQUE KEY `uq_artikel_exemplare_seriennummer` (`seriennummer`),
+  KEY `idx_artikel_exemplare_artikel` (`artikel_id`),
+  KEY `idx_artikel_exemplare_status` (`status_id`),
+  KEY `idx_artikel_exemplare_zustand` (`zustand_id`),
+  KEY `idx_artikel_exemplare_standort` (`standort_id`),
+  KEY `idx_artikel_exemplare_klassensatz` (`ist_klassensatz`,`klassensatz_name`),
+  CONSTRAINT `fk_artikel_exemplare_artikel` FOREIGN KEY (`artikel_id`) REFERENCES `artikel` (`id`),
+  CONSTRAINT `fk_artikel_exemplare_standort` FOREIGN KEY (`standort_id`) REFERENCES `standorte` (`id`),
+  CONSTRAINT `fk_artikel_exemplare_status` FOREIGN KEY (`status_id`) REFERENCES `statuskatalog` (`id`),
+  CONSTRAINT `fk_artikel_exemplare_zustand` FOREIGN KEY (`zustand_id`) REFERENCES `zustandskatalog` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=358 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- smedia.ausleihen definition
+
+CREATE TABLE `ausleihen` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `exemplar_id` int(10) unsigned NOT NULL,
+  `ausleiher_id` int(10) unsigned NOT NULL,
+  `ausgabe_am` datetime NOT NULL DEFAULT current_timestamp(),
+  `faellig_am` datetime DEFAULT NULL,
+  `rueckgabe_am` datetime DEFAULT NULL,
+  `zustand_bei_ausgabe_id` int(10) unsigned NOT NULL,
+  `zustand_bei_rueckgabe_id` int(10) unsigned DEFAULT NULL,
+  `status` varchar(30) NOT NULL DEFAULT 'offen',
+  `kommentar_ausgabe` text DEFAULT NULL,
+  `kommentar_rueckgabe` text DEFAULT NULL,
+  `erstellt_am` datetime NOT NULL DEFAULT current_timestamp(),
+  `aktualisiert_am` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_ausleihen_exemplar` (`exemplar_id`),
+  KEY `idx_ausleihen_ausleiher` (`ausleiher_id`),
+  KEY `idx_ausleihen_status` (`status`),
+  KEY `idx_ausleihen_faelligkeit` (`faellig_am`),
+  KEY `fk_ausleihen_zustand_ausgabe` (`zustand_bei_ausgabe_id`),
+  KEY `fk_ausleihen_zustand_rueckgabe` (`zustand_bei_rueckgabe_id`),
+  CONSTRAINT `fk_ausleihen_ausleiher` FOREIGN KEY (`ausleiher_id`) REFERENCES `ausleiher` (`id`),
+  CONSTRAINT `fk_ausleihen_exemplar` FOREIGN KEY (`exemplar_id`) REFERENCES `artikel_exemplare` (`id`),
+  CONSTRAINT `fk_ausleihen_zustand_ausgabe` FOREIGN KEY (`zustand_bei_ausgabe_id`) REFERENCES `zustandskatalog` (`id`),
+  CONSTRAINT `fk_ausleihen_zustand_rueckgabe` FOREIGN KEY (`zustand_bei_rueckgabe_id`) REFERENCES `zustandskatalog` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=191 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- smedia.buch_details definition
+
+CREATE TABLE `buch_details` (
+  `artikel_id` int(10) unsigned NOT NULL,
+  `titelcode` varchar(20) DEFAULT NULL,
+  `autor` varchar(255) DEFAULT NULL,
+  `verlag` varchar(255) DEFAULT NULL,
+  `fach_id` int(10) unsigned DEFAULT NULL,
+  `veroeffentlicht` varchar(50) DEFAULT NULL,
+  `cover_url` varchar(500) DEFAULT NULL,
+  `cover_bild` longtext DEFAULT NULL,
+  `jahrgangsstufe` varchar(50) DEFAULT NULL,
+  `schuljahr_ausgabe` varchar(20) DEFAULT NULL,
+  `ist_arbeitsheft` tinyint(1) NOT NULL DEFAULT 0,
+  `ist_lehrerversion` tinyint(1) NOT NULL DEFAULT 0,
+  `herkunft_id` int(10) unsigned DEFAULT NULL,
+  PRIMARY KEY (`artikel_id`),
+  UNIQUE KEY `uq_buch_details_titelcode` (`titelcode`),
+  KEY `idx_buch_details_jahrgangsstufe` (`jahrgangsstufe`),
+  KEY `idx_buch_details_veroeffentlicht` (`veroeffentlicht`),
+  KEY `idx_buch_details_fach` (`fach_id`),
+  KEY `idx_buch_details_herkunft` (`herkunft_id`),
+  CONSTRAINT `fk_buch_details_artikel` FOREIGN KEY (`artikel_id`) REFERENCES `artikel` (`id`),
+  CONSTRAINT `fk_buch_details_fach` FOREIGN KEY (`fach_id`) REFERENCES `faecher` (`id`),
+  CONSTRAINT `fk_buch_details_herkunft` FOREIGN KEY (`herkunft_id`) REFERENCES `herkunft` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- smedia.exemplar_zuordnungen definition
+
+CREATE TABLE `exemplar_zuordnungen` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `haupt_exemplar_id` int(10) unsigned NOT NULL,
+  `neben_exemplar_id` int(10) unsigned NOT NULL,
+  `beziehungsart` varchar(50) NOT NULL,
+  `beschreibung` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_exemplar_zuordnungen` (`haupt_exemplar_id`,`neben_exemplar_id`,`beziehungsart`),
+  KEY `idx_exemplar_zuordnungen_neben` (`neben_exemplar_id`),
+  CONSTRAINT `fk_exemplar_zuordnungen_haupt` FOREIGN KEY (`haupt_exemplar_id`) REFERENCES `artikel_exemplare` (`id`),
+  CONSTRAINT `fk_exemplar_zuordnungen_neben` FOREIGN KEY (`neben_exemplar_id`) REFERENCES `artikel_exemplare` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- smedia.geraete_details definition
+
+CREATE TABLE `geraete_details` (
+  `artikel_id` int(10) unsigned NOT NULL,
+  `geraetekategorie` varchar(100) NOT NULL,
+  `modellnummer` varchar(100) DEFAULT NULL,
+  `speichergroesse` varchar(50) DEFAULT NULL,
+  `betriebssystem` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`artikel_id`),
+  KEY `idx_geraete_details_geraetekategorie` (`geraetekategorie`),
+  CONSTRAINT `fk_geraete_details_artikel` FOREIGN KEY (`artikel_id`) REFERENCES `artikel` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- smedia.historie_eintraege definition
+
+CREATE TABLE `historie_eintraege` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `bezug_typ` varchar(50) NOT NULL,
+  `bezug_id` int(10) unsigned DEFAULT NULL,
+  `exemplar_id` int(10) unsigned DEFAULT NULL,
+  `ausleihe_id` int(10) unsigned DEFAULT NULL,
+  `aktion` varchar(50) NOT NULL,
+  `titel` varchar(255) NOT NULL,
+  `details` text DEFAULT NULL,
+  `ausgeloest_von` varchar(150) NOT NULL DEFAULT 'system',
+  `erstellt_am` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_historie_erstellt_am` (`erstellt_am`),
+  KEY `idx_historie_bezug` (`bezug_typ`,`bezug_id`),
+  KEY `idx_historie_exemplar` (`exemplar_id`),
+  KEY `idx_historie_ausleihe` (`ausleihe_id`),
+  CONSTRAINT `fk_historie_ausleihe` FOREIGN KEY (`ausleihe_id`) REFERENCES `ausleihen` (`id`),
+  CONSTRAINT `fk_historie_exemplar` FOREIGN KEY (`exemplar_id`) REFERENCES `artikel_exemplare` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=788 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- smedia.leihvertraege_positionen definition
+
+CREATE TABLE `leihvertraege_positionen` (
+  `leihvertrag_id` int(10) unsigned NOT NULL,
+  `artikel_exemplar_id` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`leihvertrag_id`,`artikel_exemplar_id`),
+  KEY `idx_leihvertraege_positionen_exemplar` (`artikel_exemplar_id`),
+  CONSTRAINT `fk_leihvertraege_positionen_exemplar` FOREIGN KEY (`artikel_exemplar_id`) REFERENCES `artikel_exemplare` (`id`),
+  CONSTRAINT `fk_leihvertraege_positionen_vertrag` FOREIGN KEY (`leihvertrag_id`) REFERENCES `leihvertraege` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- smedia.schadensmeldungen definition
+
+CREATE TABLE `schadensmeldungen` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `exemplar_id` int(10) unsigned NOT NULL,
+  `ausleihe_id` int(10) unsigned DEFAULT NULL,
+  `gemeldet_von_ausleiher_id` int(10) unsigned DEFAULT NULL,
+  `gemeldet_am` datetime NOT NULL DEFAULT current_timestamp(),
+  `titel` varchar(255) NOT NULL,
+  `beschreibung` text NOT NULL,
+  `schadensgrad` varchar(30) NOT NULL DEFAULT 'mittel',
+  `status` varchar(30) NOT NULL DEFAULT 'offen',
+  `geloest_am` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_schadensmeldungen_exemplar` (`exemplar_id`),
+  KEY `idx_schadensmeldungen_ausleihe` (`ausleihe_id`),
+  KEY `idx_schadensmeldungen_ausleiher` (`gemeldet_von_ausleiher_id`),
+  KEY `idx_schadensmeldungen_status` (`status`),
+  CONSTRAINT `fk_schadensmeldungen_ausleihe` FOREIGN KEY (`ausleihe_id`) REFERENCES `ausleihen` (`id`),
+  CONSTRAINT `fk_schadensmeldungen_ausleiher` FOREIGN KEY (`gemeldet_von_ausleiher_id`) REFERENCES `ausleiher` (`id`),
+  CONSTRAINT `fk_schadensmeldungen_exemplar` FOREIGN KEY (`exemplar_id`) REFERENCES `artikel_exemplare` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- smedia.reparaturen definition
+
+CREATE TABLE `reparaturen` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `schadensmeldung_id` int(10) unsigned NOT NULL,
+  `exemplar_id` int(10) unsigned NOT NULL,
+  `gestartet_am` datetime NOT NULL DEFAULT current_timestamp(),
+  `abgeschlossen_am` datetime DEFAULT NULL,
+  `status` varchar(30) NOT NULL DEFAULT 'offen',
+  `dienstleister` varchar(150) DEFAULT NULL,
+  `beschreibung` text NOT NULL,
+  `kosten` decimal(10,2) DEFAULT NULL,
+  `abschluss_notiz` text DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_reparaturen_schaden` (`schadensmeldung_id`),
+  KEY `idx_reparaturen_exemplar` (`exemplar_id`),
+  KEY `idx_reparaturen_status` (`status`),
+  CONSTRAINT `fk_reparaturen_exemplar` FOREIGN KEY (`exemplar_id`) REFERENCES `artikel_exemplare` (`id`),
+  CONSTRAINT `fk_reparaturen_schadensmeldung` FOREIGN KEY (`schadensmeldung_id`) REFERENCES `schadensmeldungen` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO inventar_typen
+(bezeichnung, beschreibung, ausleihart_id)
+VALUES
+('buch','Ausleihbare Buecher und Buch-Exemplare.', 1),
+('tablet','Tablets wie iPads.', 1),
+('stift','Digitale Stifte wie Apple Pencil.', 1),
+('ladegeraet','Netzteile und Ladegeraete.', 1),
+('tastatur', 'Tastaturen fuer mobile Geraete.',1),
+('beamer', 'Beamer und Projektionsgeraete.',1),
+('tablet_zubehoer','Sonstiges Zubehoer', 1),
+('laptop','', 1),
+('laptop_zubehoer','', 1),
+('taschenrechner','', 1),
+('hotspot','', 1),
+('netzteil','', 1);
+
+
+
+# Tabellen vorbelegen, werte durch Komma getrennt:
+- artikel_kategorie: Tablet,Tablet_Zubehoer,Laptop,Laptop_Zubehoer,Buch,Taschenrechner,Hotspot,Netzteil,Stift,Beamer,Tastatur
+- ausleiharten: einzelexemplar,klassensatz
+- faecher: Deutsch,Mathematik,Englisch,Biologie,Geschichte,Physik,Chemie,Geographie,Sport,Musik,Kunst,Informatik,Ethik,Religion,Latein,Franzoesisch,Politik,Wirtschaft
+- herkunft: Kauf,DigitalPakt 2021,Spende,Leasing ABC,Leasing DEF,Stadt
+- standorte: Medienraum,Bibliothek,Lager Technik,Klassenraum 7a
+- statuskatalog: verfuegbar,reserviert,ausgeliehen,defekt,in_reparatur,verloren,ausgesondert
+- vertrags_vorlagen: Leihvertrag TABLET,Leihvertrag LAPTOP,Leihvertrag WLAN,Leihvertrag TABLET
+- zustandskatalog: neu,sehr_gut,gut,gebraucht,beschaedigt,unvollstaendig
+
+#Tabellen leer lassen:
+- vertrags_abschnitte
+- app_einstellungen
+- artikel
+- artikel_exemplare
+- ausleihen
+- ausleiher
+- buch_details
+- exemplar_zuordnungen
+- geraete_details
+- historie_eintraege
+- klassen
+- lehrkraefte
+- leihvertraege
+- leihvertraege_positionen
+- reparaturen
+- schadensmeldungen
+- schueler
+- schueler_klassen

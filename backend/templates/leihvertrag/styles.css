@@ -1,0 +1,197 @@
+@page {
+  size: A4;
+  margin: __PAGE_MARGIN_TOP__ __PAGE_MARGIN_RIGHT__ __PAGE_MARGIN_BOTTOM__ __PAGE_MARGIN_LEFT__;
+}
+
+:root {
+  color: #1f2937;
+  font-family: "Segoe UI", Arial, sans-serif;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: #1f2937;
+  background: #ffffff;
+}
+
+.contract-page {
+  min-height: calc(297mm - (__PAGE_MARGIN_TOP_VALUE__ + __PAGE_MARGIN_BOTTOM_VALUE__));
+  display: flex;
+  flex-direction: column;
+  gap: 8mm;
+}
+
+.letterhead-wrap {
+  width: 100%;
+}
+
+.letterhead-image {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.page-break-before {
+  break-before: page;
+}
+
+.page-header,
+.legal-header,
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 8mm;
+  align-items: flex-start;
+}
+
+.eyebrow {
+  margin: 0 0 2mm;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-size: 10px;
+  color: #0f766e;
+  font-weight: 700;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 24px;
+  line-height: 1.15;
+}
+
+h2 {
+  font-size: 16px;
+  margin-bottom: 4mm;
+}
+
+.contract-meta {
+  color: #4b5563;
+}
+
+.contract-type-badge {
+  padding: 3mm 5mm;
+  border-radius: 999px;
+  background: #e6fffb;
+  color: #115e59;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5mm;
+}
+
+.info-card,
+.device-section {
+  padding: 0;
+}
+
+.info-card dl {
+  margin: 0;
+  display: grid;
+  gap: 3mm;
+}
+
+.info-card dl div {
+  display: grid;
+  gap: 1mm;
+}
+
+dt {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+
+dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.device-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.device-table th,
+.device-table td {
+  padding: 1.25mm 1.5mm;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: top;
+  text-align: left;
+  line-height: 1.2;
+}
+
+.device-table th {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: #4b5563;
+}
+
+.signature-grid {
+  margin-top: auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6mm;
+}
+
+.signature-card {
+  padding-top: 8mm;
+}
+
+.signature-line {
+  border-top: 1px solid #111827;
+  margin-bottom: 2mm;
+}
+
+.signature-card p {
+  font-weight: 700;
+}
+
+.signature-card small {
+  color: #6b7280;
+}
+
+.legal-content {
+  display: grid;
+  gap: 4mm;
+  padding: 2mm 0 0;
+}
+
+.legal-header {
+  justify-content: center;
+  text-align: center;
+}
+
+.legal-pages {
+  break-before: page;
+  padding-bottom: 10mm;
+}
+
+.legal-entry + .legal-entry {
+  margin-top: 8mm;
+}
+
+.legal-content p,
+.legal-content li {
+  font-size: 12px;
+}
+
+.legal-content ul,
+.legal-content ol {
+  margin: 0;
+  padding-left: 5mm;
+}

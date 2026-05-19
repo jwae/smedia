@@ -1,0 +1,407 @@
+Datenbank: smedia
+Typ: MariaDB
+Port: 3307
+
+Ziel der Struktur
+- Verwaltung ausleihbarer Inventarobjekte fuer eine Schule
+- gemeinsame Basis fuer Geraete und Buecher
+- Ausleihe, Rueckgabe, Standort, Zustand, Status und Historie
+
+Grundidee
+- artikel = Stammdatensatz eines Inventarobjekts
+- artikel_exemplare = konkretes physisches Exemplar
+- inventar_typen = fachliche Typen wie buch, tablet, stift
+- ausleihen = einzelne Ausleihvorgaenge
+- historie_eintraege = Nachvollziehbarkeit auf Ausleih- und Objektebene
+
+Tabellenuebersicht
+
+1. ausleiharten
+Zweck:
+- beschreibt die grundsaetzliche Art der Ausleihe
+
+Wichtige Felder:
+- id
+- bezeichnung
+- beschreibung
+
+Beispieldaten:
+- einzelexemplar
+- klassensatz
+
+2. inventar_typen
+Zweck:
+- fachliche Typisierung eines Artikels
+
+Wichtige Felder:
+- id
+- bezeichnung
+- beschreibung
+- ausleihart_id
+
+Beispieldaten:
+- buch
+- tablet
+- stift
+- ladegeraet
+- tastatur
+- beamer
+
+3. statuskatalog
+Zweck:
+- organisatorischer Status eines Exemplars
+
+Wichtige Felder:
+- id
+- bezeichnung
+- beschreibung
+- ist_ausleihbar
+
+Beispieldaten:
+- verfuegbar
+- reserviert
+- ausgeliehen
+- defekt
+- in_reparatur
+- verloren
+- ausgesondert
+
+4. zustandskatalog
+Zweck:
+- physischer Zustand eines Exemplars
+
+Wichtige Felder:
+- id
+- bezeichnung
+- beschreibung
+- sortierung
+
+Beispieldaten:
+- neu
+- sehr_gut
+- gut
+- gebraucht
+- beschaedigt
+- unvollstaendig
+
+5. standorte
+Zweck:
+- Raeumliche oder organisatorische Ablageorte
+
+Wichtige Felder:
+- id
+- bezeichnung
+- standort_typ
+- parent_id
+- beschreibung
+
+Beispieldaten:
+- Medienraum
+- Bibliothek
+- Lager Technik
+- Klassenraum 7a
+
+6. artikel
+Zweck:
+- Stammdatensatz fuer einen ausleihbaren Gegenstandstyp
+
+Wichtige Felder:
+- id
+- inventar_typ_id
+- titel
+- interne_bezeichnung
+- beschreibung
+- hersteller
+- modellbezeichnung
+- aktiv
+- erstellt_am
+- aktualisiert_am
+
+Beispiele:
+- iPad 10. Generation 64 GB
+- Apple Pencil USB-C
+- Deutsch 7
+
+7. artikel_exemplare
+Zweck:
+- konkretes physisches Exemplar, auf das sich Ausleihe und Historie beziehen
+
+Wichtige Felder:
+- id
+- artikel_id
+- inventarnummer
+- barcode
+- seriennummer
+- status_id
+- zustand_id
+- standort_id
+- anschaffungsdatum
+- kaufpreis
+- garantie_bis
+- ist_klassensatz
+- klassensatz_name
+- notizen
+- aktiv
+- erstellt_am
+- aktualisiert_am
+
+Wichtige Regeln:
+- inventarnummer eindeutig
+- barcode eindeutig
+- seriennummer eindeutig, falls gesetzt
+
+Beispiele:
+- IPAD-001
+- PENCIL-001
+- BUCH-DE-001
+
+8. buch_details
+Zweck:
+- Zusatzdaten nur fuer Buecher
+- Titelcode identifiziert den Buchtitel ueber den gescannten Verlagscode, praktisch meist EAN/ISBN-13
+
+Wichtige Felder:
+- artikel_id
+- titelcode
+- autor
+- verlag
+- fach
+- jahrgangsstufe
+- schuljahr_ausgabe
+- ist_arbeitsheft
+
+Wichtige Trennung:
+- titelcode = externer Code fuer den Buchtitel
+- artikel_exemplare.barcode = interner Code fuer das einzelne Exemplar
+
+9. geraete_details
+Zweck:
+- Zusatzdaten nur fuer Geraete
+
+Wichtige Felder:
+- artikel_id
+- geraetekategorie
+- modellnummer
+- speichergroesse
+- betriebssystem
+
+10. exemplar_zuordnungen
+Zweck:
+- Zuordnung von Zubehoer oder verbundenen Exemplaren
+
+Wichtige Felder:
+- id
+- haupt_exemplar_id
+- neben_exemplar_id
+- beziehungsart
+- beschreibung
+
+Beispiel:
+- Pencil gehoert zu iPad
+- Netzteil gehoert zu iPad
+
+11. ausleiher
+Zweck:
+- Personen oder Gruppen, an die ausgeliehen wird
+
+Wichtige Felder:
+- id
+- name
+- ausleiher_typ
+- klasse_oder_bereich
+- barcode
+- aktiv
+- erstellt_am
+- aktualisiert_am
+
+Beispieldaten:
+- Frau Becker
+- Herr Schneider
+- Max Mustermann
+- Anna Becker
+- Klasse 7a
+
+11a. klassen
+Zweck:
+- zentrale Tabelle fuer vorhandene Schulklassen
+- Grundlage fuer Klassenausleihe, Schuljahreslogik und spaetere Importe
+
+Wichtige Felder:
+- id
+- bezeichnung
+- stufe
+- parallelklasse
+- sortierung
+- aktiv
+- erstellt_am
+- aktualisiert_am
+
+Beispiele:
+- 01a
+- 08h
+- 11
+- EF
+- Q2
+
+11b. schueler
+Zweck:
+- Stammdaten fuer Schueler
+- Grundlage fuer Scan, Ausleihe und spaetere Importe
+
+Wichtige Felder:
+- id
+- vorname
+- nachname
+- anzeigename
+- barcode
+- geburtsdatum
+- aktiv
+- notizen
+- erstellt_am
+- aktualisiert_am
+
+11c. schueler_klassen
+Zweck:
+- Zuordnung von Schuelern zu Klassen pro Schuljahr
+- trennt Personenstammdaten von Klassenzuordnung und Verlauf
+
+Wichtige Felder:
+- id
+- schueler_id
+- klassen_id
+- schuljahr
+- von_datum
+- bis_datum
+- ist_aktuell
+- erstellt_am
+- aktualisiert_am
+
+11d. lehrkraefte
+Zweck:
+- Stammdaten fuer Lehrkraefte
+- Grundlage fuer Ausleihe, Scan und spaetere Rollen- oder Importlogik
+
+Wichtige Felder:
+- id
+- kuerzel
+- anrede
+- vorname
+- nachname
+- anzeigename
+- barcode
+- email
+- fachbereich
+- aktiv
+- notizen
+- erstellt_am
+- aktualisiert_am
+
+12. ausleihen
+Zweck:
+- dokumentiert Ausgabe und Rueckgabe eines Exemplars
+
+Wichtige Felder:
+- id
+- exemplar_id
+- ausleiher_id
+- ausgabe_am
+- faellig_am
+- rueckgabe_am
+- zustand_bei_ausgabe_id
+- zustand_bei_rueckgabe_id
+- status
+- kommentar_ausgabe
+- kommentar_rueckgabe
+- erstellt_am
+- aktualisiert_am
+
+Wichtige Statuswerte:
+- offen
+- zurueckgegeben
+
+Wichtige Bedeutung:
+- faellig_am ist aktuell die Basis fuer die Fälligkeitslogik
+
+13. historie_eintraege
+Zweck:
+- zentrale Historie fuer Ausleihen und Objekte
+
+Wichtige Felder:
+- id
+- bezug_typ
+- bezug_id
+- exemplar_id
+- ausleihe_id
+- aktion
+- titel
+- details
+- ausgeloest_von
+- erstellt_am
+
+Aktuell verwendete Aktionen:
+- exemplar_angelegt
+- ausgabe
+- rueckgabe
+- status_aenderung
+- zustandsaenderung
+- standortaenderung
+- notiz_aenderung
+
+Wichtige fachliche Trennungen
+
+Status vs Zustand
+- status = organisatorischer Zustand, z. B. verfuegbar oder ausgeliehen
+- zustand = physischer Zustand, z. B. gut oder beschaedigt
+
+Artikel vs Exemplar
+- artikel = Modell oder Titel
+- artikel_exemplare = echtes einzelnes Objekt
+
+Buch vs Geraet
+- gemeinsame Stammlogik ueber artikel
+- Spezialisierung ueber buch_details und geraete_details
+
+Titelcode vs Exemplarcode bei Buechern
+- titelcode in buch_details = Scan des Verlags- oder EAN-Codes zur Titelidentifikation
+- barcode in artikel_exemplare = interner Exemplarcode fuer Ausleihe, Rueckgabe und Historie
+- damit kann ein Titel ueber den gescannten EAN erkannt werden, ohne dass mehrere physische Exemplare verwechselt werden
+
+Aktuelle API-Bezuege
+- /api/uebersicht
+- /api/exemplare
+- /api/ausleiher
+- /api/ausleihen
+- /api/ausleihen/:id/rueckgabe
+- /api/historie
+- /api/standorte
+- /api/exemplare/:id
+
+Aktuelle Fälligkeitslogik
+- liegt serverseitig im Backend
+- basiert auf ausleihen.faellig_am
+
+Regeln:
+- kein faellig_am = ohne Frist
+- Datum in Vergangenheit = ueberfaellig
+- innerhalb der naechsten 2 Tage = bald faellig
+- sonst = unkritisch
+
+Dateien mit SQL-Struktur
+- sql/smedia_schema.sql
+- sql/smedia_beispieldaten.sql
+- sql/smedia_ausleihe.sql
+- sql/smedia_klassen.sql
+- sql/smedia_schueler.sql
+- sql/smedia_schueler_beispieldaten.sql
+- sql/smedia_lehrkraefte.sql
+- sql/smedia_lehrkraefte_beispieldaten.sql
+- sql/smedia_buch_titelcode.sql
+- sql/smedia_historie.sql
+- sql/smedia_objekthistorie.sql
+
+Naechste sinnvolle Erweiterungen
+- schadensmeldungen
+- reparaturen
+- automatische Standardfristen je ausleiher_typ
+- benutzerverwaltung und rollen
+- schuljahre und Importlogik fuer Schuelerdaten

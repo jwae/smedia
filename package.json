@@ -1,0 +1,30 @@
+{
+  "name": "smedia-monorepo",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "workspaces": [
+    "frontend",
+    "backend",
+    "lib"
+  ],
+  "scripts": {
+    "dev": "npm run dev:frontend",
+    "dev:frontend": "npm run dev --workspace frontend",
+    "dev:backend": "npm run dev --workspace backend",
+    "dev:stack": "docker compose --env-file .env.docker -f docker-compose.dev.yml up --build",
+    "dev:stack:down": "docker compose --env-file .env.docker -f docker-compose.dev.yml down",
+    "dev:stack:logs": "docker compose --env-file .env.docker -f docker-compose.dev.yml logs -f",
+    "build": "npm run build --workspace frontend",
+    "build:frontend": "npm run build --workspace frontend",
+    "demo:build": "npm run build --workspace frontend",
+    "preview": "npm run preview --workspace frontend",
+    "start": "npm run start --workspace backend",
+    "start:api": "npm run start --workspace backend",
+    "docker:dev": "npm run dev:stack",
+    "docker:dev:down": "npm run dev:stack:down",
+    "docker:prod": "docker compose --env-file .env.docker -f docker-compose.yml up --build",
+    "docker:prod:down": "docker compose --env-file .env.docker -f docker-compose.yml down",
+    "docker:prod:logs": "docker compose --env-file .env.docker -f docker-compose.yml logs -f"
+  }
+}
