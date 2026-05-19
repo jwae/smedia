@@ -409,6 +409,23 @@ textarea {
   gap: 10px;
 }
 
+.scanner-head-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.scanner-head-title h2 {
+  margin: 0;
+}
+
+.scanner-head-title .badge {
+  min-height: 20px;
+  padding: 3px 9px;
+  font-size: 0.66rem;
+}
+
 .icon-toggle {
   display: inline-flex;
   align-items: center;
@@ -1029,6 +1046,30 @@ textarea {
 
 .scan-slot small {
   color: rgba(36, 52, 71, 0.66);
+}
+
+.scan-person-meta {
+  margin-top: 8px;
+  display: grid;
+  gap: 6px;
+}
+
+.scan-person-meta-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(36, 52, 71, 0.08);
+  font-size: 0.84rem;
+}
+
+.scan-person-meta-row span {
+  color: rgba(36, 52, 71, 0.62);
+}
+
+.scan-person-meta-row strong {
+  text-align: right;
+  word-break: break-word;
 }
 
 .scan-inline-badge {

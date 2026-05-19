@@ -62,9 +62,11 @@ function toggleScanAusleihe(ausleiheId, checked) {
   <section class="start-grid">
     <article class="panel scanner-panel">
       <div class="panel-head">
-        <h2>Scanner</h2>
-        <div class="panel-head-actions scanner-head-actions">
+        <div class="scanner-head-title">
+          <h2>Scanner</h2>
           <span class="badge">{{ scannerGeraetLabel }}</span>
+        </div>
+        <div class="panel-head-actions scanner-head-actions">
           <button class="ghost small-button head-reset-button" @click="emit('scan-zuruecksetzen')">
             Scan Reset
           </button>

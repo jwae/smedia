@@ -28,10 +28,10 @@ const {
 
 const {
   scannerGeraetLabel, scannerStatus, scanResult, scanType, manuelleCodeEingabe, lastError,
-  scanDialog, markierteScanAusleihen, scanBereitZurAusleihe, scanOffeneAusleiheZurRueckgabe,
-  scanOffeneAusleihenDesAusleihers, scanMarkierteAusleihe, scanAktiveAusleihe, scanBereitZurRueckgabe,
-  scanHinweisText, fokussiereScannerEingabe, leereScannerEingaben, scanDialogZuruecksetzen, resetResult,
-  verarbeiteErkanntenCode, manuelleCodePruefung, uebernehmeScanAusleiher, uebernehmeScanExemplar,
+  scanDialog, markierteScanAusleihen, scanBereitZurAusleihe, scanOffeneAusleihenDesAusleihers,
+  scanAktiveAusleihe, scanBereitZurRueckgabe, scanHinweisText, fokussiereScannerEingabe,
+  leereScannerEingaben, scanDialogZuruecksetzen, resetResult, manuelleCodePruefung,
+  uebernehmeScanAusleiher, uebernehmeScanExemplar,
   exemplarHatWarnstatus, exemplarWarntext,
   istAusleiheUeberfaellig, tageUeberfaellig
 } = useScanner(exemplare, ausleiher, offeneAusleihen);
@@ -1145,8 +1145,9 @@ function ausleiherDetailText(eintrag) {
   if (!eintrag) return "";
 
   if (eintrag.ausleiher_typ === "schueler") {
-    return eintrag.klasse_oder_bereich
-      ? `Schueler, Klasse ${eintrag.klasse_oder_bereich}`
+    const klasse = eintrag.klasse || eintrag.klasse_oder_bereich;
+    return klasse
+      ? `Schueler, Klasse ${klasse}`
       : "Schueler";
   }
 
@@ -1276,13 +1277,19 @@ watch(() => scanDialog.value.ausleiher, (person) => {
     if (!klassensatzForm.value.ausleiher_id && person.ausleiher_typ === "klasse") {
       klassensatzForm.value.ausleiher_id = person.id;
     }
+    return;
   }
+
+  ausleiheForm.value.ausleiher_id = "";
 });
 
 watch(() => scanDialog.value.exemplar, (exemplar) => {
   if (exemplar) {
     ausleiheForm.value.exemplar_id = exemplar.id;
+    return;
   }
+
+  ausleiheForm.value.exemplar_id = "";
 });
 
 watch(

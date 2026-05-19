@@ -1,99 +1,107 @@
 import { ref, computed, nextTick, onMounted, onUnmounted } from "vue";
+import { apiRequest } from "../utils/api.js";
+
+const SCANNER_READY_TEXT = "Bereit fuer den Honeywell-Scan.";
+const SCAN_INPUT_SELECTOR = '[data-scanner-input="true"]';
+const SCAN_EXPECTED = {
+  AUSLEIHER: "ausleiher",
+  EXEMPLAR: "exemplar",
+  KOMPLETT: "komplett"
+};
 
 export function useScanner(exemplare, ausleiher, offeneAusleihen) {
   const scannerGeraetLabel = "Honeywell USB-Scanner";
-  const scannerStatus = ref("Bereit fuer den Honeywell-Scan.");
+  const scannerStatus = ref(SCANNER_READY_TEXT);
   const scanResult = ref("");
   const scanType = ref("");
   const manuelleCodeEingabe = ref("");
   const lastError = ref("");
-  // Referenz für das Scanner-Eingabefeld im DOM
   const scannerInputRef = ref(null);
 
   const scanDialog = ref({
     ausleiher: null,
     exemplar: null,
-    erwartet: "ausleiher"
+    erwartet: SCAN_EXPECTED.AUSLEIHER
   });
 
   const markierteScanAusleihen = ref([]);
 
+  function parseScanDatum(isoWert) {
+    if (!isoWert) return null;
+
+    const datum = new Date(isoWert);
+    return isNaN(datum.getTime()) ? null : datum;
+  }
+
+  function holeHeutigenTagesbeginn() {
+    const heute = new Date();
+    heute.setHours(0, 0, 0, 0);
+    return heute;
+  }
+
   function istAusleiheUeberfaellig(ausleihe) {
     if (!ausleihe) return false;
-    
-    // 1. Backend-Flag prüfen (Sicherste Methode, vermeidet das 2026-Problem)
+
     if (ausleihe.faelligkeit && ausleihe.faelligkeit.status === "ueberfaellig") {
       return true;
     }
 
-    // 2. Lokale Berechnung als Fallback
     if (ausleihe.faellig_am) {
-      const faellig = new Date(ausleihe.faellig_am);
-      if (isNaN(faellig.getTime())) return false; // Ungültiges Datumsformat abfangen
-
-      const heute = new Date();
+      const faellig = parseScanDatum(ausleihe.faellig_am);
+      if (!faellig) return false;
       faellig.setHours(0, 0, 0, 0);
-      heute.setHours(0, 0, 0, 0);
+      const heute = holeHeutigenTagesbeginn();
       return faellig.getTime() < heute.getTime();
     }
+
     return false;
   }
 
   function tageUeberfaellig(ausleihe) {
     if (!ausleihe || !ausleihe.faellig_am) return 0;
-    
-    const faellig = new Date(ausleihe.faellig_am);
-    if (isNaN(faellig.getTime())) return 0;
 
-    const heute = new Date();
+    const faellig = parseScanDatum(ausleihe.faellig_am);
+    if (!faellig) return 0;
     faellig.setHours(0, 0, 0, 0);
-    heute.setHours(0, 0, 0, 0);
-    
+    const heute = holeHeutigenTagesbeginn();
+
     const diffTime = heute.getTime() - faellig.getTime();
-    
     if (diffTime > 0) {
       return Math.floor(diffTime / (1000 * 60 * 60 * 24));
     }
 
-    // Fallback für eure Testdaten (Backend sendet 2026, dein PC ist in 2024):
     if (ausleihe.faelligkeit && ausleihe.faelligkeit.status === "ueberfaellig") {
-      return 1; // Pauschal 1 Tag zurückgeben, damit das rote Warn-Etikett im UI zwingend erscheint
+      return 1;
     }
 
     return 0;
   }
 
-  // --- Globale Scanner-Erkennung (Hardware Scanner) ---
   let scanBuffer = "";
   let lastKeyTime = Date.now();
 
   function handleGlobalKeydown(e) {
-    // Ignoriere Tastenkombinationen (Strg+C, Alt+Tab, etc.)
     if (e.ctrlKey || e.metaKey || e.altKey) return;
 
     const currentTime = Date.now();
-    // Wenn der Abstand zwischen zwei Anschlägen > 50ms ist, war es ein Mensch -> Buffer leeren
     if (currentTime - lastKeyTime > 50) {
       scanBuffer = "";
     }
     lastKeyTime = currentTime;
 
-    // Scanner beenden ihren Scan fast immer mit "Enter"
     if (e.key === "Enter" && scanBuffer.length >= 3) {
-      e.preventDefault(); // Verhindert Submit von Formularen
-      verarbeiteErkanntenCode(scanBuffer, "Globaler Auto-Scan");
-      
+      e.preventDefault();
+      void verarbeiteErkanntenCode(scanBuffer, "Globaler Auto-Scan");
+
       scanBuffer = "";
-      manuelleCodeEingabe.value = ""; // Verhindert doppelte Ausführung, falls Eingabefeld fokussiert war
-      
-      // Fokus vom aktuellen Feld nehmen, damit das UI nicht in Textfeldern hängen bleibt
+      manuelleCodeEingabe.value = "";
+
       if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) {
         e.target.blur();
       }
       return;
     }
 
-    // Nur echte, druckbare Einzelzeichen in den Buffer aufnehmen
     if (e.key.length === 1) {
       scanBuffer += e.key;
     }
@@ -107,32 +115,34 @@ export function useScanner(exemplare, ausleiher, offeneAusleihen) {
     window.removeEventListener("keydown", handleGlobalKeydown);
   });
 
+  function holeScannerEingabefeld() {
+    return scannerInputRef.value || document.querySelector(SCAN_INPUT_SELECTOR);
+  }
+
+  function fokussiereUndMarkiereScannerFeld() {
+    const feld = holeScannerEingabefeld();
+    if (feld instanceof HTMLInputElement) {
+      feld.focus();
+      feld.select();
+    }
+  }
+
   function fokussiereScannerEingabe() {
     nextTick(() => {
-      const feld =
-        scannerInputRef.value ||
-        document.querySelector('[data-scanner-input="true"]');
-      if (feld instanceof HTMLInputElement) {
-        feld.focus();
-        feld.select();
-      }
-      setTimeout(() => {
-        const spaeteresFeld =
-          scannerInputRef.value ||
-          document.querySelector('[data-scanner-input="true"]');
-        if (spaeteresFeld instanceof HTMLInputElement) {
-          spaeteresFeld.focus();
-          spaeteresFeld.select();
-        }
-      }, 30);
+      fokussiereUndMarkiereScannerFeld();
+      setTimeout(fokussiereUndMarkiereScannerFeld, 30);
     });
   }
 
-  function leereScannerEingaben() {
+  function setzeScannerRueckmeldungZurueck() {
     manuelleCodeEingabe.value = "";
     scanResult.value = "";
     scanType.value = "";
     lastError.value = "";
+  }
+
+  function leereScannerEingaben() {
+    setzeScannerRueckmeldungZurueck();
 
     const feld = scannerInputRef.value;
     if (feld instanceof HTMLInputElement) {
@@ -144,123 +154,213 @@ export function useScanner(exemplare, ausleiher, offeneAusleihen) {
     scanDialog.value = {
       ausleiher: null,
       exemplar: null,
-      erwartet: "ausleiher"
+      erwartet: SCAN_EXPECTED.AUSLEIHER
     };
     markierteScanAusleihen.value = [];
   }
 
   function resetResult() {
-    scanResult.value = "";
-    scanType.value = "";
-    manuelleCodeEingabe.value = "";
-    lastError.value = "";
-    markierteScanAusleihen.value = [];
+    setzeScannerRueckmeldungZurueck();
     scanDialogZuruecksetzen();
-    scannerStatus.value = "Bereit fuer den Honeywell-Scan.";
+    scannerStatus.value = SCANNER_READY_TEXT;
   }
 
   function uebernehmeScanAusleiher(person) {
     if (scanDialog.value.ausleiher && Number(scanDialog.value.ausleiher.id) !== Number(person.id)) {
       markierteScanAusleihen.value = [];
     }
+
     scanDialog.value.ausleiher = person;
-    scanDialog.value.erwartet = scanDialog.value.exemplar ? "komplett" : "exemplar";
+    scanDialog.value.erwartet = scanDialog.value.exemplar ? SCAN_EXPECTED.KOMPLETT : SCAN_EXPECTED.EXEMPLAR;
   }
 
   function uebernehmeScanExemplar(exemplar) {
     scanDialog.value.exemplar = exemplar;
-    scanDialog.value.erwartet = scanDialog.value.ausleiher ? "komplett" : "ausleiher";
+    scanDialog.value.erwartet = scanDialog.value.ausleiher ? SCAN_EXPECTED.KOMPLETT : SCAN_EXPECTED.AUSLEIHER;
   }
 
-  function verarbeiteErkanntenCode(decodedText, formatName = "Manuelle Eingabe") {
-    scanResult.value = decodedText;
+  function normalisiereScanCode(wert) {
+    return String(wert || "").trim().replace(/\r/g, "").replace(/\n/g, "");
+  }
+
+  function findeAusleiherZumCode(code) {
+    const scanCode = normalisiereScanCode(code);
+    if (!scanCode) return null;
+
+    return (
+      ausleiher.value.find((eintrag) => normalisiereScanCode(eintrag.barcode) === scanCode) ||
+      ausleiher.value.find((eintrag) => eintrag.ausleiher_typ === "schueler" && String(eintrag.s_id || "").trim() === scanCode) ||
+      null
+    );
+  }
+
+  function findeExemplarZumCode(code) {
+    const scanCode = normalisiereScanCode(code);
+    if (!scanCode) return null;
+
+    return (
+      exemplare.value.find((eintrag) => normalisiereScanCode(eintrag.barcode) === scanCode) ||
+      null
+    );
+  }
+
+  function findeOffeneAusleiheZumExemplar(exemplar) {
+    if (!exemplar) return null;
+
+    return (
+      offeneAusleihen.value.find(
+        (eintrag) =>
+          Number(eintrag.exemplar_id) === Number(exemplar.id) ||
+          eintrag.inventarnummer === exemplar.inventarnummer
+      ) || null
+    );
+  }
+
+  async function ladeScanTrefferAusDb(scanCode) {
+    try {
+      return await apiRequest(`/scanner/lookup?code=${encodeURIComponent(scanCode)}`);
+    } catch (error) {
+      if (String(error?.message || "").includes("nicht im System gefunden")) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  function findeJsonScanTreffer(scanCode) {
+    let exemplar = null;
+    let person = null;
+    let istTreffer = false;
+
+    try {
+      const parsed = JSON.parse(scanCode);
+
+      if (parsed && typeof parsed === "object") {
+        if (parsed.type === "device" || parsed.type === "exemplar") {
+          exemplar = exemplare.value.find((eintrag) => Number(eintrag.id) === Number(parsed.id));
+          istTreffer = Boolean(exemplar);
+        } else if (parsed.type === "user" || parsed.type === "person") {
+          person = ausleiher.value.find((eintrag) => Number(eintrag.id) === Number(parsed.id));
+          istTreffer = Boolean(person);
+        }
+      }
+    } catch {
+      istTreffer = false;
+    }
+
+    return { exemplar, person, istTreffer };
+  }
+
+  async function findeScanTreffer(scanCode) {
+    const jsonTreffer = findeJsonScanTreffer(scanCode);
+    if (jsonTreffer.istTreffer) {
+      return jsonTreffer;
+    }
+
+    const treffer = await ladeScanTrefferAusDb(scanCode);
+    if (treffer?.typ === "exemplar") {
+      return { exemplar: treffer.daten, person: null };
+    }
+    if (treffer?.typ === "ausleiher") {
+      return { exemplar: null, person: treffer.daten };
+    }
+
+    return {
+      exemplar: findeExemplarZumCode(scanCode),
+      person: findeAusleiherZumCode(scanCode)
+    };
+  }
+
+  function holeAusleiherWarnungText() {
+    return scanAusleiherUeberfaelligCount.value > 0
+      ? ` ACHTUNG: ${scanAusleiherUeberfaelligCount.value} ueberfaellig!`
+      : "";
+  }
+
+  function gehoertAusleiheZumAusleiher(ausleihe, person) {
+    if (!ausleihe || !person) return false;
+
+    if (ausleihe.ausleiher_id != null) {
+      return Number(ausleihe.ausleiher_id) === Number(person.id);
+    }
+
+    return ausleihe.ausleiher_name === person.name;
+  }
+
+  function personHatOffeneAusleihen(person) {
+    return offeneAusleihen.value.some((eintrag) => gehoertAusleiheZumAusleiher(eintrag, person));
+  }
+
+  function synchronisiereExemplarNachAusleiherScan(person) {
+    if (!personHatOffeneAusleihen(person) && scanDialog.value.exemplar?.status === "ausgeliehen") {
+      scanDialog.value.exemplar = null;
+      scanDialog.value.erwartet = SCAN_EXPECTED.EXEMPLAR;
+      markierteScanAusleihen.value = [];
+    }
+  }
+
+  function verarbeiteExemplarTreffer(exemplar) {
+    const offeneAusleihe = exemplar.status === "ausgeliehen"
+      ? findeOffeneAusleiheZumExemplar(exemplar)
+      : null;
+
+    if (offeneAusleihe && istAusleiheUeberfaellig(offeneAusleihe)) {
+      lastError.value = `ACHTUNG: Das Exemplar ${exemplar.inventarnummer} ist ueberfaellig!`;
+    }
+
+    uebernehmeScanExemplar(exemplar);
+
+    const warnung = holeAusleiherWarnungText();
+    scannerStatus.value = scanDialog.value.ausleiher
+      ? `Ausleiher und Exemplar erkannt: ${exemplar.inventarnummer}.${warnung}`
+      : `Exemplar ${exemplar.inventarnummer} erkannt. Jetzt Ausleiher scannen.`;
+  }
+
+  function verarbeiteAusleiherTreffer(person) {
+    uebernehmeScanAusleiher(person);
+    synchronisiereExemplarNachAusleiherScan(person);
+
+    if (scanAusleiherUeberfaelligCount.value > 0) {
+      lastError.value = `ACHTUNG: ${person.name} hat ${scanAusleiherUeberfaelligCount.value} ueberfaellige Ausleihe(n)!`;
+    }
+
+    const warnung = holeAusleiherWarnungText();
+    scannerStatus.value = scanDialog.value.exemplar
+      ? `${person.name} erkannt.${warnung} Ausleihe ist scanbereit.`
+      : `${person.name} erkannt.${warnung} Jetzt Exemplar scannen.`;
+  }
+
+  async function verarbeiteErkanntenCode(decodedText, formatName = "Manuelle Eingabe") {
+    const scanCode = normalisiereScanCode(decodedText);
+
+    if (!scanCode) {
+      scannerStatus.value = "Bitte zuerst einen Barcode eingeben.";
+      return;
+    }
+
+    scanResult.value = scanCode;
     scanType.value = formatName;
-    scannerStatus.value = "Code erkannt.";
+    scannerStatus.value = "Code erkannt. Pruefe Barcode in der Datenbank...";
     lastError.value = "";
 
     let exemplar = null;
     let person = null;
 
-    // JSON-QR Code Support (wie im Architektur-Konzept geplant)
     try {
-      const parsed = JSON.parse(decodedText);
-      if (parsed.type === "device" || parsed.type === "exemplar") {
-        exemplar = exemplare.value.find((eintrag) => Number(eintrag.id) === Number(parsed.id));
-      } else if (parsed.type === "user" || parsed.type === "person") {
-        person = ausleiher.value.find((eintrag) => Number(eintrag.id) === Number(parsed.id));
-      }
-    } catch (e) {
-      // Fallback auf klassische Barcode-Strings
-      exemplar = exemplare.value.find((eintrag) => eintrag.barcode === decodedText);
-      if (!exemplar) {
-        person = ausleiher.value.find((eintrag) => eintrag.barcode === decodedText);
-      }
+      ({ exemplar, person } = await findeScanTreffer(scanCode));
+    } catch (error) {
+      lastError.value = error.message || "Barcode konnte nicht in der Datenbank geprueft werden.";
+      scannerStatus.value = "Barcode-Pruefung fehlgeschlagen.";
+      return;
     }
 
     if (exemplar) {
-      // Automatisches Zuweisen des Ausleihers, wenn das Gerät bereits ausgeliehen ist
-      if (exemplar.status === "ausgeliehen") {
-        const offeneAusleihe = offeneAusleihen.value.find(
-          (eintrag) =>
-            Number(eintrag.exemplar_id) === Number(exemplar.id) ||
-            eintrag.inventarnummer === exemplar.inventarnummer
-        );
-        
-        if (offeneAusleihe) {
-          if (istAusleiheUeberfaellig(offeneAusleihe)) {
-            lastError.value = `ACHTUNG: Das Exemplar ${exemplar.inventarnummer} ist überfällig!`;
-          }
-
-          if (offeneAusleihe.ausleiher_id) {
-            const personMitAusleihe = ausleiher.value.find(
-              (a) => Number(a.id) === Number(offeneAusleihe.ausleiher_id)
-            );
-            if (personMitAusleihe) {
-              uebernehmeScanAusleiher(personMitAusleihe);
-            }
-          }
-        }
-      }
-
-      uebernehmeScanExemplar(exemplar);
-
-      const warnung = scanAusleiherUeberfaelligCount.value > 0 
-        ? ` ACHTUNG: ${scanAusleiherUeberfaelligCount.value} überfällig!` 
-        : "";
-
-      scannerStatus.value = scanDialog.value.ausleiher
-        ? `Ausleiher und Exemplar erkannt: ${exemplar.inventarnummer}.${warnung}`
-        : `Exemplar ${exemplar.inventarnummer} erkannt. Jetzt Ausleiher scannen.`;
+      verarbeiteExemplarTreffer(exemplar);
       return;
     }
 
     if (person) {
-      uebernehmeScanAusleiher(person);
-
-      const personHatOffeneAusleihen = offeneAusleihen.value.some((eintrag) => {
-        if (eintrag.ausleiher_id != null) {
-          return Number(eintrag.ausleiher_id) === Number(person.id);
-        }
-        return eintrag.ausleiher_name === person.name;
-      });
-
-      if (!personHatOffeneAusleihen && scanDialog.value.exemplar?.status === "ausgeliehen") {
-        scanDialog.value.exemplar = null;
-        scanDialog.value.erwartet = "exemplar";
-        markierteScanAusleihen.value = [];
-      }
-
-      if (scanAusleiherUeberfaelligCount.value > 0) {
-        lastError.value = `ACHTUNG: ${person.name} hat ${scanAusleiherUeberfaelligCount.value} überfällige Ausleihe(n)!`;
-      }
-
-      const warnung = scanAusleiherUeberfaelligCount.value > 0 
-        ? ` ACHTUNG: ${scanAusleiherUeberfaelligCount.value} überfällig!` 
-        : "";
-
-      scannerStatus.value = scanDialog.value.exemplar
-        ? `${person.name} erkannt.${warnung} Ausleihe ist scanbereit.`
-        : `${person.name} erkannt.${warnung} Jetzt Exemplar scannen.`;
+      verarbeiteAusleiherTreffer(person);
       return;
     }
 
@@ -274,7 +374,7 @@ export function useScanner(exemplare, ausleiher, offeneAusleihen) {
       fokussiereScannerEingabe();
       return;
     }
-    verarbeiteErkanntenCode(code, "Honeywell / Codeeingabe");
+    void verarbeiteErkanntenCode(code, "Honeywell / Codeeingabe");
     manuelleCodeEingabe.value = "";
     fokussiereScannerEingabe();
   }
@@ -288,22 +388,16 @@ export function useScanner(exemplare, ausleiher, offeneAusleihen) {
       return "Geraet oder Buch scannen";
     }
     if (exemplar.status === "ausgeliehen") {
-      const offeneAusleihe = offeneAusleihen.value.find(
-        (eintrag) =>
-          eintrag.exemplar_id === exemplar.id ||
-          eintrag.inventarnummer === exemplar.inventarnummer
-      );
-        
-        let ueberfaelligText = "";
-        if (offeneAusleihe) {
-          if (istAusleiheUeberfaellig(offeneAusleihe)) {
-            ueberfaelligText = " (ÜBERFÄLLIG!)";
-          }
-        }
+      const offeneAusleihe = findeOffeneAusleiheZumExemplar(exemplar);
+
+      let ueberfaelligText = "";
+      if (offeneAusleihe && istAusleiheUeberfaellig(offeneAusleihe)) {
+        ueberfaelligText = " (UEBERFAELLIG!)";
+      }
 
       return offeneAusleihe?.ausleiher_name
-          ? `Ausgeliehen an ${offeneAusleihe.ausleiher_name}${ueberfaelligText}`
-          : `Aktuell ausgeliehen${ueberfaelligText}`;
+        ? `Ausgeliehen an ${offeneAusleihe.ausleiher_name}${ueberfaelligText}`
+        : `Aktuell ausgeliehen${ueberfaelligText}`;
     }
     if (exemplar.status === "defekt") {
       return "Defekt und nicht ausleihbar";
@@ -319,8 +413,11 @@ export function useScanner(exemplare, ausleiher, offeneAusleihen) {
   );
 
   const scanOffeneAusleiheZurRueckgabe = computed(() => {
-    if (scanDialog.value.exemplar?.status !== "ausgeliehen" || !scanDialog.value.ausleiher) {
+    if (scanDialog.value.exemplar?.status !== "ausgeliehen") {
       return null;
+    }
+    if (!scanDialog.value.ausleiher) {
+      return findeOffeneAusleiheZumExemplar(scanDialog.value.exemplar);
     }
     return (
       offeneAusleihen.value.find(
@@ -333,22 +430,18 @@ export function useScanner(exemplare, ausleiher, offeneAusleihen) {
 
   const scanOffeneAusleihenDesAusleihers = computed(() => {
     if (!scanDialog.value.ausleiher) return [];
-    const gefiltert = offeneAusleihen.value.filter((eintrag) => {
-      if (eintrag.ausleiher_id != null) return Number(eintrag.ausleiher_id) === Number(scanDialog.value.ausleiher.id);
-      return eintrag.ausleiher_name === scanDialog.value.ausleiher.name;
-    });
+    const gefiltert = offeneAusleihen.value.filter((eintrag) => gehoertAusleiheZumAusleiher(eintrag, scanDialog.value.ausleiher));
 
-    // Sortierung: Überfällige Ausleihen stehen automatisch ganz oben
     return gefiltert.sort((a, b) => {
       const aIstUeberfaellig = istAusleiheUeberfaellig(a);
       const bIstUeberfaellig = istAusleiheUeberfaellig(b);
-      
+
       if (aIstUeberfaellig && !bIstUeberfaellig) return -1;
       if (!aIstUeberfaellig && bIstUeberfaellig) return 1;
-      
+
       const dateA = a.faellig_am ? new Date(a.faellig_am).getTime() : Infinity;
       const dateB = b.faellig_am ? new Date(b.faellig_am).getTime() : Infinity;
-      
+
       return dateA - dateB;
     });
   });
@@ -368,21 +461,24 @@ export function useScanner(exemplare, ausleiher, offeneAusleihen) {
   const scanBereitZurRueckgabe = computed(() => Boolean(scanAktiveAusleihe.value));
 
   const scanHinweisText = computed(() => {
-    if (scanOffeneAusleiheZurRueckgabe.value) return `Exemplar ist an ${scanDialog.value.ausleiher?.name} verliehen. Rueckgabe ist direkt moeglich.`;
+    if (scanOffeneAusleiheZurRueckgabe.value) {
+      const ausleiherName = scanOffeneAusleiheZurRueckgabe.value.ausleiher_name || scanDialog.value.ausleiher?.name || "dem Ausleiher";
+      return `Exemplar ist an ${ausleiherName} verliehen. Rueckgabe ist direkt moeglich.`;
+    }
     if (scanMarkierteAusleihe.value) return `${scanMarkierteAusleihe.value.inventarnummer} ist markiert. Rueckgabe oder Verlaengerung ist direkt moeglich.`;
     if (scanDialog.value.exemplar?.status === "ausgeliehen") return exemplarWarntext(scanDialog.value.exemplar);
     if (scanDialog.value.exemplar?.status === "defekt") return exemplarWarntext(scanDialog.value.exemplar);
-    
-    const warnung = scanAusleiherUeberfaelligCount.value > 0 
-      ? ` (Achtung: ${scanAusleiherUeberfaelligCount.value} überfällig)` 
+
+    const warnung = scanAusleiherUeberfaelligCount.value > 0
+      ? ` (Achtung: ${scanAusleiherUeberfaelligCount.value} ueberfaellig)`
       : "";
 
     if (scanBereitZurAusleihe.value) return `Person und Exemplar sind erkannt${warnung}. Du kannst die Ausleihe direkt speichern.`;
-    return scanDialog.value.erwartet === "ausleiher" ? "1. Person oder Klasse scannen" : `2. Geraet oder Buch scannen${warnung}`;
+    return scanDialog.value.erwartet === SCAN_EXPECTED.AUSLEIHER ? "1. Person oder Klasse scannen" : `2. Geraet oder Buch scannen${warnung}`;
   });
 
   return {
-    scannerInputRef, scannerGeraetLabel, scannerStatus, scanResult, scanType, 
+    scannerInputRef, scannerGeraetLabel, scannerStatus, scanResult, scanType,
     manuelleCodeEingabe, lastError, scanDialog, markierteScanAusleihen,
     scanBereitZurAusleihe, scanOffeneAusleiheZurRueckgabe, scanOffeneAusleihenDesAusleihers, scanAusleiherUeberfaelligCount, scanMarkierteAusleihe,
     scanAktiveAusleihe, scanBereitZurRueckgabe, scanHinweisText, fokussiereScannerEingabe, leereScannerEingaben,

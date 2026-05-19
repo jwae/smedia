@@ -637,31 +637,31 @@ INSERT INTO smedia.vertrags_abschnitte (v_vorlage_id,titel,abschnitt_art,sortier
         <p>Die Schule kann Zugriffe aus organisatorischen oder sicherheitsrelevanten Gruenden jederzeit einschraenken oder beenden.</p>'),
 	 (4,'Vorbemerkung','rechtstext',1,'<p>Im Rahmen des Sofortausstattungsprogramms „DigitalPakt Schule“ werden Schülerinnen und Schülern leihweise mit mobilen Endgeräten ausgestattet. Dieser Leihvertrag regelt Einzelheiten zur Nutzung der Leihgeräte und ist für beide Parteien verbindlich.</p>');
 INSERT INTO smedia.vertrags_abschnitte (v_vorlage_id,titel,abschnitt_art,sortier_nr,html_inhalt) VALUES
-	 (4,'§ 1 - Leihgerät und Grundsätze der Nutzung','rechtstext',2,'<p>(1)	Die Stadt Grevenbroich stellt dem/der Entleiher*in das/die auf Seite 1 aufgeführte(-n) Endgerät(-e) inkl. Zubehör - zusammen im Folgenden „das Leihgerät“ genannt - unentgeltlich zur Verfügung. 
+	 (4,'§ 1 - Leihgerät und Grundsätze der Nutzung','rechtstext',2,'<p>(1)	Die Stadt Musterstadt stellt dem/der Entleiher*in das/die auf Seite 1 aufgeführte(-n) Endgerät(-e) inkl. Zubehör - zusammen im Folgenden „das Leihgerät“ genannt - unentgeltlich zur Verfügung. 
 </p><p>
-Das Leihgerät verbleibt im Eigentum der Stadt Grevenbroich. Die Nutzung ist nur durch den/die Entleiher*in zulässig. Eine Veräußerung oder Weitergabe an Dritte - auch zu lediglich vorübergehender Nutzung - ist verboten. 
+Das Leihgerät verbleibt im Eigentum der Stadt Musterstadt. Die Nutzung ist nur durch den/die Entleiher*in zulässig. Eine Veräußerung oder Weitergabe an Dritte - auch zu lediglich vorübergehender Nutzung - ist verboten. 
 </p><p>
 (2)	Der/die Entleiher*in verpflichtet sich zu jeder Zeit auf Verlangen Auskunft über den Verbleib des Leihgerätes zu geben und dieses der Schule jederzeit vorzuführen.
 </p><p>
-(3)	Das Leihgerät ist pfleglich und sorgsam zu behandeln, insbesondere ist das Leihgerät vor Verschmutzungen und Beschädigungen zu schützen. Das Anbringen von permanenten Markierungen und Aufklebern/Stickern ist nicht erlaubt. Ausgenommen hiervon sind durch die Stadt Grevenbroich autorisierte Aufkleber zum Hinweis auf Zuschussgeber. 
+(3)	Das Leihgerät ist pfleglich und sorgsam zu behandeln, insbesondere ist das Leihgerät vor Verschmutzungen und Beschädigungen zu schützen. Das Anbringen von permanenten Markierungen und Aufklebern/Stickern ist nicht erlaubt. Ausgenommen hiervon sind durch die Stadt Musterstadt autorisierte Aufkleber zum Hinweis auf Zuschussgeber. 
 </p><p>
-(4)	Das Leihgerät wird über ein zentrales Mobile Device Management (MDM) verwaltet und ist vorkonfiguriert. Die Stadt Grevenbroich behält sich gegenüber dem/der Entleiher*in vor, jederzeit Anpassungen der Konfigurationen vorzunehmen.
+(4)	Das Leihgerät wird über ein zentrales Mobile Device Management (MDM) verwaltet und ist vorkonfiguriert. Die Stadt Musterstadt behält sich gegenüber dem/der Entleiher*in vor, jederzeit Anpassungen der Konfigurationen vorzunehmen.
 </p><p>
-(5)	Die Stadt Grevenbroich oder die o.g. Schule kann bei Bedarf - vor allem bei nicht mehr vorhandener Funktionsfähigkeit - das Leihgerät sperren oder in den Auslieferungszustand zurücksetzen. Durch das Zurücksetzen werden alle auf dem Leihgerät gespeicherte Daten gelöscht. Der/die Entleiher*in hat keinen Anspruch auf Sicherung oder Speicherung von Daten oder Dokumenten. Die Stadt Grevenbroich und die ITK-Rheinland haben das Recht, jederzeit Einblick in das Leihgerät zu nehmen, sofern und soweit dies zur Prüfung der Funktionsfähigkeit des Leihgerätes oder der installierten
+(5)	Die Stadt Musterstadt oder die o.g. Schule kann bei Bedarf - vor allem bei nicht mehr vorhandener Funktionsfähigkeit - das Leihgerät sperren oder in den Auslieferungszustand zurücksetzen. Durch das Zurücksetzen werden alle auf dem Leihgerät gespeicherte Daten gelöscht. Der/die Entleiher*in hat keinen Anspruch auf Sicherung oder Speicherung von Daten oder Dokumenten. Die Stadt Musterstadt und die ITK-Rheinland haben das Recht, jederzeit Einblick in das Leihgerät zu nehmen, sofern und soweit dies zur Prüfung der Funktionsfähigkeit des Leihgerätes oder der installierten
 </p>'),
 	 (4,'§ 2 Beschädigung, Diebstahl und Versicherung','rechtstext',3,'<p>(1)	Jede Beschädigung oder Funktionsbeeinträchtigung des Leihgeräts oder Zubehörs muss der Schulleitung unmittelbar nach Eintritt der Beschädigung/Funktionsbeeinträchtigung gemeldet werden.
 </p><p>
-(2)	Jeglicher Verlust des Leihgerätes muss der Schulleitung unmittelbar nach Verlust gemeldet werden. Bei Diebstahl des Leihgerätes erstattet die Stadt Grevenbroich als Eigentümerin polizeiliche Anzeige. 
+(2)	Jeglicher Verlust des Leihgerätes muss der Schulleitung unmittelbar nach Verlust gemeldet werden. Bei Diebstahl des Leihgerätes erstattet die Stadt Musterstadt als Eigentümerin polizeiliche Anzeige. 
 </p><p>
-(3)	Die Stadt Grevenbroich hat für das Leihgerät eine für den/die Entleiher*in kostenfreie Versicherung abgeschlossen. Dennoch kann es zu Zusatzkosten kommen. Diese können dem/der Entleiher*in als Selbstbeteiligung in Rechnung gestellt werden, wenn Schäden behoben werden müssen, die weder über die Geräte-Garantie noch über Dritte abgedeckt sind oder wenn der Versicherungsschutz erlischt. 
+(3)	Die Stadt Musterstadt hat für das Leihgerät eine für den/die Entleiher*in kostenfreie Versicherung abgeschlossen. Dennoch kann es zu Zusatzkosten kommen. Diese können dem/der Entleiher*in als Selbstbeteiligung in Rechnung gestellt werden, wenn Schäden behoben werden müssen, die weder über die Geräte-Garantie noch über Dritte abgedeckt sind oder wenn der Versicherungsschutz erlischt. 
 </p><p>
 a.	Bei unverschuldeten Hardwareschäden innerhalb der Garantiezeit fallen keine Kosten an, wenn der Garantieanspruch vom Hersteller anerkannt wird.
 </p><p>
-b.	Bei Hardwareschäden, die nicht durch Dritte verursacht wurden, tritt die Versicherung der Stadt Grevenbroich in Kraft und stellt sicher, dass das Leihgerät repariert oder ersetzt wird. Die Stadt Grevenbroich behält sich die Möglichkeit vor, dem/der Entleiher*in die städtische Selbstbeteiligung in Höhe von bis zu 100,00 Euro in Rechnung zu stellen.
+b.	Bei Hardwareschäden, die nicht durch Dritte verursacht wurden, tritt die Versicherung der Stadt Musterstadt in Kraft und stellt sicher, dass das Leihgerät repariert oder ersetzt wird. Die Stadt Musterstadt behält sich die Möglichkeit vor, dem/der Entleiher*in die städtische Selbstbeteiligung in Höhe von bis zu 100,00 Euro in Rechnung zu stellen.
 </p><p>
-c.	Die Versicherung der Stadt Grevenbroich behält sich vor, Regress gegen die Versicherung des/der Entleihers/Entleiherin geltend zu machen, bei vorsätzlich oder grob fahrlässig herbeigeführten Hardwareschäden auch gegen den/die Entleiher*in. 
+c.	Die Versicherung der Stadt Musterstadt behält sich vor, Regress gegen die Versicherung des/der Entleihers/Entleiherin geltend zu machen, bei vorsätzlich oder grob fahrlässig herbeigeführten Hardwareschäden auch gegen den/die Entleiher*in. 
 </p><p>
-d.	Bei Diebstahl bzw. Verlust/Abhandenkommen des Leihgerätes behält sich die Stadt Grevenbroich vor, dem/der Entleiher*in die städtische Selbstbeteiligung in Höhe von 100,00 Euro in Rechnung zu stellen. 
+d.	Bei Diebstahl bzw. Verlust/Abhandenkommen des Leihgerätes behält sich die Stadt Musterstadt vor, dem/der Entleiher*in die städtische Selbstbeteiligung in Höhe von 100,00 Euro in Rechnung zu stellen. 
 </p><p>
 (4)	Aus diesem Grunde wird empfohlen, vorab mit der ggf. bei dem/der Entleiher*in bereits bestehenden Haftpflicht- oder Hausratversicherung Kontakt aufzunehmen. Möglicherweise sind entsprechende Leistungen bereits in den vorhandenen Versicherungsverträgen enthalten oder können gegen eine kleine Gebühr dazu gebucht werden.
 </p><p>
@@ -685,7 +685,7 @@ d.	Bei Diebstahl bzw. Verlust/Abhandenkommen des Leihgerätes behält sich die S
 
 (3)	Das allgemeine Persönlichkeitsrecht ist zu beachten. Foto-, Video- und Audioaufnahmen, einschließlich deren Anfertigung, Speicherung, Weitergabe, Verbreitung und Veröffentlichung, sind ohne Einwilligung der aufgenommenen Person unzulässig. 
 
-(4)	Es ist verboten, mit dem Leihgerät Inhalte, die der Stadt Grevenbroich, der o.g. Schule oder dem Land Nordrhein-Westfalen schaden können, im Internet zu veröffentlichen, zu versenden oder sonst zugänglich zu machen. 	
+(4)	Es ist verboten, mit dem Leihgerät Inhalte, die der Stadt Musterstadt, der o.g. Schule oder dem Land Nordrhein-Westfalen schaden können, im Internet zu veröffentlichen, zu versenden oder sonst zugänglich zu machen. 	
 
 (5)	Das Hoch- oder Herunterladen sowie das Kopieren von Dateien, insbesondere von Dateien, die in sog. „File-Sharing-Netzwerken“ angeboten werden, sind grundsätzlich untersagt. Die Umgehung von Kopierschutzmechanismen ist verboten.
 
@@ -695,9 +695,9 @@ d.	Bei Diebstahl bzw. Verlust/Abhandenkommen des Leihgerätes behält sich die S
 
 (8)	Es ist verboten, die auf dem Leihgerät bereits vorinstallierten Programme/Apps zu löschen, zu verändern oder an andere Personen weiterzugeben.
 </p>'),
-	 (4,'§ 5 Verstöße gegen den Leihvertrag','rechtstext',6,'<p>(1)	Bei Zuwiderhandlungen gegen diesen Leihvertrag kann durch die Stadt Grevenbroich oder die o.g. Schule die Nutzung des Leihgerätes nach pflichtgemäßem Ermessen ganz oder teilweise, zeitweise oder dauerhaft eingeschränkt oder untersagt werden. 
+	 (4,'§ 5 Verstöße gegen den Leihvertrag','rechtstext',6,'<p>(1)	Bei Zuwiderhandlungen gegen diesen Leihvertrag kann durch die Stadt Musterstadt oder die o.g. Schule die Nutzung des Leihgerätes nach pflichtgemäßem Ermessen ganz oder teilweise, zeitweise oder dauerhaft eingeschränkt oder untersagt werden. 
 
-(2)	Die Stadt Grevenbroich und die o.g. Schule haften nicht im Falle einer rechts- oder verbotswidrigen Nutzung des Leihgerätes (vgl. § 4 dieses Leihvertrages).
+(2)	Die Stadt Musterstadt und die o.g. Schule haften nicht im Falle einer rechts- oder verbotswidrigen Nutzung des Leihgerätes (vgl. § 4 dieses Leihvertrages).
 </p>'),
 	 (4,'§ 6 Beendigung und Rückgabe','rechtstext',7,'<p>(1)	Es besteht für beide Vertragsparteien die Möglichkeit, den Leihvertrag jederzeit mit sofortiger Wirkung zu beenden. Dazu ist eine entsprechende Mitteilung in Textform erforderlich. 
 
@@ -714,14 +714,14 @@ Datenschutz
 
 (1)	Es gelten die gesetzlichen Bestimmungen gemäß EU-Datenschutz-Grundverordnung (EU-DSGVO) zum Schutz personenbezogener Daten und deren Verarbeitung.
 
-(2)	Im Rahmen des Supports und der Wartung des Leihgerätes dürfen personenbezogene Daten durch die Stadt Grevenbroich als Schulträger, die o.g. Schule und der ITK-Rheinland verarbeitet werden, die zur ordnungsgemäßen Erfüllung dieses Leihvertrages einschließlich aller Sorgfaltspflichten erforderlich sind (Art. 6 Abs. 1 S. 1 Buchst. b DSGVO).  
+(2)	Im Rahmen des Supports und der Wartung des Leihgerätes dürfen personenbezogene Daten durch die Stadt Musterstadt als Schulträger, die o.g. Schule und der ITK-Rheinland verarbeitet werden, die zur ordnungsgemäßen Erfüllung dieses Leihvertrages einschließlich aller Sorgfaltspflichten erforderlich sind (Art. 6 Abs. 1 S. 1 Buchst. b DSGVO).  
 
 (3)	Der/die Entleiher*in ist damit einverstanden, dass personenbezogene Daten zur allgemeinen Administration - unter Wahrung datenschutzrechtlicher Grundsätze - gespeichert werden.
 
 § 9
 Schlussbestimmungen
 
-(1)	Sofern der Stadt Grevenbroich Ansprüche aus diesem Leihvertrag entstehen, können diese gegen den/die Entleiher*in geltend gemacht werden.
+(1)	Sofern der Stadt Musterstadt Ansprüche aus diesem Leihvertrag entstehen, können diese gegen den/die Entleiher*in geltend gemacht werden.
 
 (2)	Jegliche Änderung oder Ergänzung dieses Leihvertrages sind nur wirksam, wenn sie schriftlich vereinbart werden. Dies gilt auch für eine Änderung dieser Schriftformklausel.
 </p><p>

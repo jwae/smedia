@@ -31,7 +31,11 @@ const currentFile = fileURLToPath(import.meta.url);
 const currentDir = path.dirname(currentFile);
 const openapiPath = path.resolve(currentDir, "..", "openapi.yaml");
 const openapiDocument = YAML.load(openapiPath);
-const distDir = path.resolve(currentDir, "..", "frontend", "dist");
+const distKandidaten = [
+  path.resolve(currentDir, "..", "frontend", "dist"),
+  path.resolve(currentDir, "..", "dist")
+];
+const distDir = distKandidaten.find((kandidat) => existsSync(path.join(kandidat, "index.html"))) || distKandidaten[0];
 const distIndexPath = path.join(distDir, "index.html");
 
 app.use(cors());
@@ -179,6 +183,26 @@ function mapExemplar(row) {
     notizen: row.notizen,
     ist_klassensatz: Boolean(row.ist_klassensatz),
     klassensatz_name: row.klassensatz_name
+  };
+}
+
+function mapAusleiherMitDetails(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    ausleiher_typ: row.ausleiher_typ,
+    klasse_oder_bereich: row.klasse_oder_bereich,
+    barcode: row.barcode,
+    quelle_typ: row.quelle_typ,
+    quelle_id: row.quelle_id,
+    aktiv: Boolean(row.aktiv),
+    s_id: row.s_id,
+    vorname: row.vorname,
+    nachname: row.nachname,
+    anzeigename: row.anzeigename,
+    geburtsdatum: row.geburtsdatum,
+    email: row.email,
+    klasse: row.klasse
   };
 }
 
@@ -5487,17 +5511,33 @@ app.get("/api/ausleiher", async (_req, res) => {
         a.barcode,
         a.quelle_typ,
         a.quelle_id,
-        a.aktiv
+        a.aktiv,
+        s.S_ID AS s_id,
+        s.vorname,
+        s.nachname,
+        s.anzeigename,
+        s.geburtsdatum,
+        s.email,
+        k.bezeichnung AS klasse
       FROM ausleiher a
       LEFT JOIN schueler s
         ON a.quelle_typ = 'schueler'
-       AND s.id = a.quelle_id
+        AND s.id = a.quelle_id
+      LEFT JOIN schueler_klassen sk
+        ON a.quelle_typ = 'schueler'
+       AND sk.schueler_id = s.id
+       AND sk.ist_aktuell = 1
       LEFT JOIN lehrkraefte l
         ON a.quelle_typ = 'lehrkraft'
-       AND l.id = a.quelle_id
+        AND l.id = a.quelle_id
       LEFT JOIN klassen k
-        ON a.quelle_typ = 'klasse'
-       AND k.id = a.quelle_id
+        ON (
+          a.quelle_typ = 'klasse'
+          AND k.id = a.quelle_id
+        ) OR (
+          a.quelle_typ = 'schueler'
+          AND k.id = sk.klassen_id
+        )
       WHERE a.aktiv = 1
         AND (
           (a.quelle_typ = 'schueler' AND COALESCE(s.aktiv, 0) = 1)
@@ -5512,9 +5552,128 @@ app.get("/api/ausleiher", async (_req, res) => {
         END,
         a.name
     `);
-    res.json(rows);
+    res.json(rows.map(mapAusleiherMitDetails));
   } catch (error) {
     res.status(500).json({ fehler: error.message });
+  }
+});
+
+app.get("/api/scanner/lookup", async (req, res) => {
+  const scanCode = String(req.query.code || "").trim();
+
+  if (!scanCode) {
+    return res.status(400).json({ fehler: "Ein Scan-Code ist erforderlich." });
+  }
+
+  try {
+    const exemplarRows = await query(
+      `
+        SELECT
+          ae.id,
+          ae.artikel_id,
+          ae.inventarnummer,
+          ae.barcode,
+          ae.seriennummer,
+          ae.ist_klassensatz,
+          ae.klassensatz_name,
+          ae.notizen,
+          a.titel,
+          bd.titelcode,
+          bd.autor,
+          bd.verlag,
+          f.bezeichnung AS fach,
+          bd.veroeffentlicht,
+          bd.cover_url,
+          bd.cover_bild,
+          ae.standort_id,
+          it.bezeichnung AS inventar_typ,
+          st.bezeichnung AS standort,
+          sk.bezeichnung AS status,
+          zk.bezeichnung AS zustand
+        FROM artikel_exemplare ae
+        JOIN artikel a ON a.id = ae.artikel_id
+        JOIN inventar_typen it ON it.id = a.inventar_typ_id
+        JOIN statuskatalog sk ON sk.id = ae.status_id
+        JOIN zustandskatalog zk ON zk.id = ae.zustand_id
+        LEFT JOIN buch_details bd ON bd.artikel_id = a.id
+        LEFT JOIN faecher f ON f.id = bd.fach_id
+        LEFT JOIN standorte st ON st.id = ae.standort_id
+        WHERE ae.aktiv = 1
+          AND (ae.barcode = ? OR ae.inventarnummer = ?)
+        LIMIT 1
+      `,
+      [scanCode, scanCode]
+    );
+
+    if (exemplarRows.length > 0) {
+      return res.json({
+        typ: "exemplar",
+        daten: mapExemplar(exemplarRows[0])
+      });
+    }
+
+    const ausleiherRows = await query(
+      `
+        SELECT
+          a.id,
+          a.name,
+          a.ausleiher_typ,
+          a.klasse_oder_bereich,
+          a.barcode,
+          a.quelle_typ,
+          a.quelle_id,
+          a.aktiv,
+          s.S_ID AS s_id,
+          s.vorname,
+          s.nachname,
+          s.anzeigename,
+          s.geburtsdatum,
+          s.email,
+          k.bezeichnung AS klasse
+        FROM ausleiher a
+        LEFT JOIN schueler s
+          ON a.quelle_typ = 'schueler'
+          AND s.id = a.quelle_id
+        LEFT JOIN schueler_klassen sk
+          ON a.quelle_typ = 'schueler'
+         AND sk.schueler_id = s.id
+         AND sk.ist_aktuell = 1
+        LEFT JOIN lehrkraefte l
+          ON a.quelle_typ = 'lehrkraft'
+          AND l.id = a.quelle_id
+        LEFT JOIN klassen k
+          ON (
+            a.quelle_typ = 'klasse'
+            AND k.id = a.quelle_id
+          ) OR (
+            a.quelle_typ = 'schueler'
+            AND k.id = sk.klassen_id
+          )
+        WHERE a.aktiv = 1
+          AND (
+            a.barcode = ?
+            OR (a.quelle_typ = 'schueler' AND CAST(s.S_ID AS CHAR) = ?)
+          )
+          AND (
+            (a.quelle_typ = 'schueler' AND COALESCE(s.aktiv, 0) = 1)
+            OR (a.quelle_typ = 'lehrkraft' AND COALESCE(l.aktiv, 0) = 1)
+            OR (a.quelle_typ = 'klasse' AND COALESCE(k.aktiv, 0) = 1)
+          )
+        LIMIT 1
+      `,
+      [scanCode, scanCode]
+    );
+
+    if (ausleiherRows.length > 0) {
+      return res.json({
+        typ: "ausleiher",
+        daten: mapAusleiherMitDetails(ausleiherRows[0])
+      });
+    }
+
+    return res.status(404).json({ fehler: "Code wurde nicht im System gefunden." });
+  } catch (error) {
+    return res.status(500).json({ fehler: error.message });
   }
 });
 
@@ -6207,9 +6366,9 @@ const server = app.listen(port, () => {
   console.log(`API-Dokumentation unter http://localhost:${port}/api/docs`);
 
   if (existsSync(distIndexPath)) {
-    console.log(`Lokales Frontend-Build unter http://localhost:${port}`);
+    console.log(`Lokales Frontend-Build unter http://localhost:${port} (${distDir})`);
   } else {
-    console.log("Kein lokales Frontend-Build gefunden. Im Docker-Produktivbetrieb liefert Nginx das Frontend auf Port 8080 aus.");
+    console.log("Kein lokales Frontend-Build gefunden. Erwartet wurde index.html unter frontend/dist oder dist. Im Docker-Produktivbetrieb liefert Nginx das Frontend auf Port 8080 aus.");
   }
 });
 
