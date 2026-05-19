@@ -1,4 +1,0 @@
-Host=localhost
-Port=3307
-Benutzername=root
-Passwort=waT%#219XBdDJ$yI-5Sh
