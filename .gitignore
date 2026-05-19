@@ -37,6 +37,27 @@ desktop.ini
 .vscode/
 .agents/
 Transfer/
+docs/
+sql/
+prompts/
+chatverlauf.txt
+share_chat.html
+api.txt
+db.txt
+info.txt
+mariadb.txt
+__useScanner.js
+frontend/src/file.tmp
+Projektbild.txt
+alter_db.js
+check_student.js
+db-init-auth-fix.sql
+fix-mariadb-auth.ps1
+prepare-transfer.bat
+start-demo.bat
+start-demo.ps1
+GEMINI.md
+README-DEMO.md
 
 *.pid
 *.seed

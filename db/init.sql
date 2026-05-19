@@ -616,6 +616,15 @@ INSERT INTO `inventar_typen` (`id`, `bezeichnung`, `beschreibung`, `ausleihart_i
 (12, 'netzteil', 'Netzteile.', 1, 1);
 
 
+INSERT INTO smedia.artikel (id,inventar_typ_id,titel,interne_bezeichnung,beschreibung,hersteller,modellbezeichnung,herkunft_id,artikel_kategorie_id,aktiv,erstellt_am,aktualisiert_am) VALUES
+	 (1,2,'iPad 09Gen-32GB','iPad',NULL,'Apple','iPad 09. Gen',2,1,1,'2026-05-18 15:49:48','2026-05-18 15:50:05'),
+	 (2,2,'iPad 10.Gen','iPad 10.Gen',NULL,'Apple','iPad 10.Gen001',2,1,1,'2026-05-18 15:51:00','2026-05-18 15:51:00'),
+	 (3,3,'iPad Stift USB-C (Apple)','iPad Stift USB-C',NULL,'Apple','iPad Stift Gen1',2,2,1,'2026-05-18 15:51:59','2026-05-18 15:51:59'),
+	 (4,3,'iPad Stift USB-C (Kichi)','iPad Stift USB-C (Kichi)',NULL,'Kichi','iPad Stift USB-C (Kichi)',1,2,1,'2026-05-18 15:52:39','2026-05-18 15:52:39'),
+	 (5,7,'iPad Hülle (Kimchi)','iPad Hülle (Kimchi)',NULL,'Kimchi','iPad Hülle (Kimchi 8)',1,2,1,'2026-05-18 19:19:53','2026-05-18 19:19:53');
+
+
+
 INSERT INTO smedia.vertrags_abschnitte (v_vorlage_id,titel,abschnitt_art,sortier_nr,html_inhalt) VALUES
 	 (1,'Nutzung des Tablets','rechtstext',1,'<p>Das ausgegebene Tablet bleibt Eigentum der Schule. Es ist ausschliesslich fuer schulische Zwecke, das Lernen zu Hause sowie fuer abgestimmte Unterrichtsvorhaben zu verwenden.</p>
         <p>Installationen, Konten und Schutzeinstellungen duerfen nur im durch die Schule freigegebenen Rahmen veraendert werden. Sicherheits- und Jugendschutzvorgaben sind einzuhalten.</p>'),
