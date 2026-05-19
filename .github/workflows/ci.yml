@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend workspace
+        run: npm run build
+
+      - name: Check backend syntax
+        run: node --check backend/server.js
+
+      - name: Validate production compose
+        run: docker compose --env-file .env.docker -f docker-compose.yml config
+
+      - name: Validate development compose
+        run: docker compose --env-file .env.docker -f docker-compose.dev.yml config

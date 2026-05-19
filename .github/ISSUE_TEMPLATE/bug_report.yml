@@ -1,0 +1,61 @@
+name: Bug Report
+description: Fehler, Regression oder unerwartetes Verhalten melden
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke fuers Melden. Bitte beschreibe den Fehler so konkret wie moeglich, damit wir ihn schnell reproduzieren koennen.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Fehlerbeschreibung
+      description: Was funktioniert nicht?
+      placeholder: Beim Start des Dev-Stacks bricht der Backend-Container mit einer DB-Fehlermeldung ab.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Schritte zur Reproduktion
+      description: Welche Schritte fuehren sicher zu dem Problem?
+      placeholder: |
+        1. npm run dev:stack
+        2. npm run dev:frontend
+        3. Seite X oeffnen
+        4. Fehler tritt auf
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Erwartetes Verhalten
+      placeholder: Der Container sollte sauber starten und auf Port 3001 lauschen.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Tatsächliches Verhalten
+      placeholder: Stattdessen erscheint Fehler Y im Log.
+    validations:
+      required: true
+  - type: input
+    id: area
+    attributes:
+      label: Betroffener Bereich
+      description: Zum Beispiel frontend, backend, docker, db, workspace, ci
+      placeholder: docker
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevante Logs oder Screenshots
+      render: shell
+  - type: textarea
+    id: environment
+    attributes:
+      label: Umgebung
+      description: Betriebssystem, Node-Version, Docker-Version, Browser oder weitere relevante Details
+      placeholder: Windows 11, Node 22, Docker Desktop 4.x

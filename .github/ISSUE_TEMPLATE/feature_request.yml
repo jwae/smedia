@@ -1,0 +1,39 @@
+name: Feature Request
+description: Neue Funktion, Verbesserung oder Infrastruktur-Idee vorschlagen
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Bitte beschreibe den Wunsch aus Sicht des Nutzens. Das hilft uns, gute technische Entscheidungen zu treffen.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Welches Problem soll geloest werden?
+      placeholder: Die Demo-Einrichtung braucht fuer neue Entwickler noch zu viele manuelle Schritte.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Gewuenschte Loesung
+      placeholder: Ein Skript oder Workflow, das die lokale Demo mit einem Befehl vorbereitet.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Gepruefte Alternativen
+      placeholder: Bisherige manuelle Schritte, andere Tools oder Workarounds
+  - type: input
+    id: area
+    attributes:
+      label: Betroffener Bereich
+      placeholder: frontend, backend, docker, db, docs, ci
+  - type: textarea
+    id: additional
+    attributes:
+      label: Weitere Hinweise
+      placeholder: Mockups, API-Ideen, Screenshots oder technische Randbedingungen

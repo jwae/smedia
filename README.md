@@ -204,3 +204,10 @@ CI/CD-Vorbereitung fuer spaeter:
 - Root-Kommandos stabil halten, damit CI nur `npm ci`, `npm run build` und Compose-Builds braucht.
 - spaeter getrennte Jobs fuer `frontend`-Build, `backend`-Smoke-Test und Container-Builds anlegen.
 - Secrets niemals in `.env.docker` fuer echte Deployments ablegen; dort spaeter GitHub Secrets oder Deployment-Variablen nutzen.
+
+Bereits vorbereitet im Repository:
+
+- `.github/workflows/ci.yml` fuer grundlegende Validierung
+- `.github/ISSUE_TEMPLATE/` fuer Bug- und Feature-Meldungen
+- `.github/pull_request_template.md` fuer einheitliche PRs
+- `CONTRIBUTING.md` fuer Branching- und Commit-Konventionen
