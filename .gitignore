@@ -58,6 +58,7 @@ start-demo.bat
 start-demo.ps1
 GEMINI.md
 README-DEMO.md
+CONTRIBUTING.md
 
 *.pid
 *.seed

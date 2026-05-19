@@ -1,0 +1,10 @@
+﻿ID;Nachname;Vorname;Klasse;Geburtsdatum;E-Mail
+1000;Beach;Patrick;1a;20.09.2019;P.Beach@meineschule.de
+1001;Borchers;Dominik;1a;20.12.2018;D.Borchers@meineschule.de
+1002;Brocke;Alexander;1a;03.07.2019;A.Brocke@meineschule.de
+1003;Budde;Jan;1a;27.09.2019;J.Budde@meineschule.de
+1004;Burtenbach;Christin;1a;21.09.2019;C.Burtenbach@meineschule.de
+10005;Clausdatter;Katharina;1a;17.11.2019;K.Clausdatter@meineschule.de
+1006;Einenkel;Florian;1a;01.10.2019;F.Einenkel@meineschule.de
+1007;Fölkersamb;Phillipp;1a;17.07.2019;P.Fölkersamb@meineschule.de
+1008;Hesse;Klaudia;1a;11.12.2019;K.Hesse@meineschule.de

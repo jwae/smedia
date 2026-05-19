@@ -1,0 +1,6 @@
+ID;Kürzel;Anrede;Vorname;Name;E-Mail;Fachbereich
+1;BCK;Frau;Anna;Becker;anna@meineschule.de;Musik
+2;SND;Herr;Tobias;Schneider;Tobi@meineschule.de;Mathe
+3;MLR;Frau;Sarah;Mueller;Sarah@meineschule.de;Musik
+1000;KHH;Herr;David;Khuga;davi@meineschule.de;Geisterwissenschaft
+99;SCH;Herr;Jörg;Schmitt;joerg@meineschule.de;Informatik
